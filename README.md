@@ -35,5 +35,5 @@ If you want to start usage, please add the BOM to your Maven project and add cor
 
 | Adapter Version                                                                                       | CIB seven Version | API Version |
 |-------------------------------------------------------------------------------------------------------|-------------------|-------------|
-| [2026.01.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.01.1) | 2.1.1             | 1.4         |
+| [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1) | 2.1.1             | 1.4         |
 
