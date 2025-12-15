@@ -1,0 +1,41 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.bpm-crafters.process-engine-examples</groupId>
+    <artifactId>process-engine-api-example-root-cib-seven</artifactId>
+    <version>2025.12.1</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>process-engine-api-example-java-cib-seven-common-fixture</artifactId>
+  <name>Example: Java CIB-Seven Common Fixture</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api</groupId>
+      <artifactId>process-engine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+  </dependencies>
+</project>
