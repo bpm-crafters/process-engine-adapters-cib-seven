@@ -20,7 +20,7 @@
   <properties>
     <!-- COMMON GLOBAL -->
     <spring-boot.version>3.5.7</spring-boot.version>
-    <process-engine-api.version>1.4</process-engine-api.version>
+    <process-engine-api.version>1.5-SNAPSHOT</process-engine-api.version>
     <cibseven.version>2.1.0</cibseven.version>
     <!-- TEST -->
     <mockito.version>6.1.0</mockito.version>
