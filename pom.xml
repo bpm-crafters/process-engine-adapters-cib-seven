@@ -24,7 +24,7 @@
     <cibseven.version>2.1.0</cibseven.version>
     <!-- TEST -->
     <mockito.version>6.1.0</mockito.version>
-    <assertj.version>3.27.6</assertj.version>
+    <assertj.version>3.27.7</assertj.version>
     <junit5.version>5.13.3</junit5.version>
     <jgiven.version>2.0.2</jgiven.version>
     <awaitility.version>4.3.0</awaitility.version>
