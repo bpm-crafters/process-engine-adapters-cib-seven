@@ -3,6 +3,7 @@ package dev.bpmcrafters.processengineapi.test
 import com.tngtech.jgiven.Stage
 import com.tngtech.jgiven.annotation.ExpectedScenarioState
 import com.tngtech.jgiven.annotation.ProvidedScenarioState
+import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByMessageCmd
 import dev.bpmcrafters.processengineapi.task.*
@@ -67,6 +68,16 @@ class BaseGivenWhenStage : Stage<BaseGivenWhenStage>() {
     ).get().instanceId
   }
 
+  fun `start process by definition at element`(definitionKey: String, elementId: String) = step {
+    instanceId = processTestHelper.getStartProcessApi().startProcess(
+      StartProcessByDefinitionAtElementCmd(
+        definitionKey = definitionKey,
+        elementId = elementId,
+        payloadSupplier = { emptyMap() },
+      )
+    ).get().instanceId
+  }
+
   fun `a active user task subscription`(taskDescriptionKey: String) = step {
     taskSubscription = subscribeTask(TaskType.USER, taskDescriptionKey) { taskInformation, _ ->
       run {
@@ -83,7 +94,6 @@ class BaseGivenWhenStage : Stage<BaseGivenWhenStage>() {
   fun `process helper`(processTestHelper: ProcessTestHelper) = step {
     this.processTestHelper = processTestHelper
   }
-
 
   fun `a active external task subscription`(taskDescriptionKey: String) = step {
     taskSubscription = subscribeTask(TaskType.EXTERNAL, taskDescriptionKey) { taskInformation, _ ->

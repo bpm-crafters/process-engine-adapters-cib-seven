@@ -28,6 +28,7 @@ class StartProcessApiImpl(
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-004: starting a new process instance by definition ${cmd.definitionKey}." }
           ensureSupported(cmd.restrictions)
           val payload = cmd.payloadSupplier.get()
+          val businessKey = payload[CommonRestrictions.BUSINESS_KEY]?.toString()
           val tenantId = cmd.restrictions[CommonRestrictions.TENANT_ID]
           if (!tenantId.isNullOrBlank()) {
             repositoryService
@@ -39,14 +40,14 @@ class StartProcessApiImpl(
               .singleResult()?.let { processDefinition ->
                 runtimeService.startProcessInstanceById(
                   processDefinition.id,
-                  payload[CommonRestrictions.BUSINESS_KEY]?.toString(),
+                  businessKey,
                   payload,
                 ).toProcessInformation()
               }
           } else {
             runtimeService.startProcessInstanceByKey(
               cmd.definitionKey,
-              payload[CommonRestrictions.BUSINESS_KEY]?.toString(),
+              businessKey,
               payload,
             ).toProcessInformation()
           }
@@ -56,16 +57,33 @@ class StartProcessApiImpl(
         CompletableFuture.supplyAsync {
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-005: starting a new process instance by message ${cmd.messageName}." }
           val payload = cmd.payloadSupplier.get()
-          var correlationBuilder = runtimeService
-            .createMessageCorrelation(cmd.messageName)
-          payload[CommonRestrictions.BUSINESS_KEY]?.apply {
-            correlationBuilder = correlationBuilder.processInstanceBusinessKey(payload[CommonRestrictions.BUSINESS_KEY]?.toString())
+          var correlationBuilder = runtimeService.createMessageCorrelation(cmd.messageName)
+          val businessKey = payload[CommonRestrictions.BUSINESS_KEY]
+          if (businessKey != null) {
+            correlationBuilder = correlationBuilder.processInstanceBusinessKey(businessKey.toString())
           }
           correlationBuilder
             .applyTenantRestrictions(ensureSupported(cmd.restrictions))
             .setVariables(payload)
             .correlateStartMessage()
             .toProcessInformation()
+        }
+
+      is StartProcessByDefinitionAtElementCmd ->
+        CompletableFuture.supplyAsync {
+          logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-006: starting a new process instance by definition ${cmd.definitionKey} at element ${cmd.elementId}" }
+          val startProcessCommand = StartProcessByDefinitionCmd(
+            definitionKey = cmd.definitionKey,
+            payloadSupplier = cmd.payloadSupplier,
+            restrictions = cmd.restrictions,
+          )
+          val instance = this.startProcess(startProcessCommand).get()
+          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_KEY] as String
+          runtimeService.createModification(processDefinitionId)
+            .processInstanceIds(instance.instanceId)
+            .startBeforeActivity(cmd.elementId)
+            .execute()
+          instance
         }
 
       else -> throw IllegalArgumentException("Unsupported start command $cmd")
