@@ -1,5 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.Cib7ServiceTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.Cib7UserTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.LinearMemoryFailureRetrySupplier
@@ -45,6 +46,7 @@ class Cib7EmbeddedProcessTestHelper(
   override fun getStartProcessApi(): StartProcessApi = StartProcessApiImpl(
     runtimeService = processEngine.runtimeService,
     repositoryService = processEngine.repositoryService,
+    commandExecutor = EngineCommandExecutor { it.run() }
   )
 
   override fun getTaskSubscriptionApi(): TaskSubscriptionApi = Cib7TaskSubscriptionApiImpl(

@@ -1,5 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.deploy
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.deploy.DeployBundleCommand
 import dev.bpmcrafters.processengineapi.deploy.NamedResource
 import org.assertj.core.api.Assertions.assertThat
@@ -13,11 +14,12 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import java.util.*
+import java.util.concurrent.Executor
 
 class DeploymentApiImplTest {
 
   private val repositoryService: RepositoryService = mock()
-  private val deploymentApiImpl = DeploymentApiImpl(repositoryService)
+  private val deploymentApiImpl = DeploymentApiImpl(repositoryService, EngineCommandExecutor(Executor { it.run() }))
 
   @Test
   fun `empty tenant id was not set`() {
