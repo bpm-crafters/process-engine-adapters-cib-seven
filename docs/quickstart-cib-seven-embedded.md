@@ -5,7 +5,7 @@ title: CIB Seven as embedded engine
 If you start with CIB Seven, operated in an embedded engine mode, by for example using the CIB Seven Spring Boot Starter,
 the following configuration is applicable for you.
 
-First, add the corresponding adapter to your project's classpath:
+First of all, add the corresponding adapter to your project's classpath:
 
 ```xml
 
