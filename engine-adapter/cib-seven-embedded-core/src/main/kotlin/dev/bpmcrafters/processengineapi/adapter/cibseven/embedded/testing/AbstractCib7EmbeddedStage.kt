@@ -12,6 +12,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.Si
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.deploy.DeploymentApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.StartProcessApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.Cib7ServiceTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.Cib7UserTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.LinearMemoryFailureRetrySupplier
@@ -45,6 +46,7 @@ import org.cibseven.bpm.engine.runtime.ProcessInstance
 import org.cibseven.bpm.engine.test.assertions.bpmn.BpmnAwareTests
 import org.cibseven.bpm.engine.variable.VariableMap
 import java.util.*
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 /**
@@ -130,12 +132,17 @@ abstract class AbstractCib7EmbeddedStage<SUBTYPE : AbstractCib7EmbeddedStage<SUB
     this.workerId = self().javaClass.simpleName
 
     val subscriptionRepository = InMemSubscriptionRepository()
+    val commandExecutor = EngineCommandExecutor(Executor { it.run() })
 
     startProcessApi = StartProcessApiImpl(
       runtimeService = processEngineServices.runtimeService,
       repositoryService = processEngineServices.repositoryService,
+      commandExecutor = commandExecutor
     )
-    deploymentApi = DeploymentApiImpl(processEngineServices.repositoryService)
+    deploymentApi = DeploymentApiImpl(
+      repositoryService = processEngineServices.repositoryService,
+      commandExecutor = commandExecutor
+    )
     userTaskCompletionApi = Cib7UserTaskCompletionApiImpl(processEngineServices.taskService, subscriptionRepository)
     serviceTaskCompletionApi = Cib7ServiceTaskCompletionApiImpl(
       workerId, processEngineServices.externalTaskService, subscriptionRepository, LinearMemoryFailureRetrySupplier(3, 3L)
@@ -162,8 +169,14 @@ abstract class AbstractCib7EmbeddedStage<SUBTYPE : AbstractCib7EmbeddedStage<SUB
       taskSubscriptionApi, restrictions, null, null
     )
 
-    signalApi = SignalApiImpl(processEngineServices.runtimeService)
-    correlationApi = CorrelationApiImpl(processEngineServices.runtimeService)
+    signalApi = SignalApiImpl(
+      runtimeService = processEngineServices.runtimeService,
+      commandExecutor = commandExecutor
+    )
+    correlationApi = CorrelationApiImpl(
+      runtimeService = processEngineServices.runtimeService,
+      commandExecutor = commandExecutor
+    )
 
     initialize()
 

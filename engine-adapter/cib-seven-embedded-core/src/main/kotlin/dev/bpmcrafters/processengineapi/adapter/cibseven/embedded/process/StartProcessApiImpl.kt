@@ -4,7 +4,13 @@ import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.MetaInfo
 import dev.bpmcrafters.processengineapi.MetaInfoAware
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.applyTenantRestrictions
-import dev.bpmcrafters.processengineapi.process.*
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
+import dev.bpmcrafters.processengineapi.process.ProcessInformation
+import dev.bpmcrafters.processengineapi.process.StartProcessApi
+import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
+import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
+import dev.bpmcrafters.processengineapi.process.StartProcessByMessageCmd
+import dev.bpmcrafters.processengineapi.process.StartProcessCommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.RuntimeService
@@ -19,53 +25,72 @@ private val logger = KotlinLogging.logger {}
 class StartProcessApiImpl(
   private val runtimeService: RuntimeService,
   private val repositoryService: RepositoryService,
+  private val commandExecutor: EngineCommandExecutor
 ) : StartProcessApi {
 
   override fun startProcess(cmd: StartProcessCommand): CompletableFuture<ProcessInformation> {
     return when (cmd) {
       is StartProcessByDefinitionCmd ->
-        CompletableFuture.supplyAsync {
+        commandExecutor.execute {
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-004: starting a new process instance by definition ${cmd.definitionKey}." }
           ensureSupported(cmd.restrictions)
           val payload = cmd.payloadSupplier.get()
+          val businessKey = payload[CommonRestrictions.BUSINESS_KEY]?.toString()
           val tenantId = cmd.restrictions[CommonRestrictions.TENANT_ID]
           if (!tenantId.isNullOrBlank()) {
-            repositoryService
+            val processDefinition = repositoryService
               .createProcessDefinitionQuery()
               .processDefinitionKey(cmd.definitionKey)
               .tenantIdIn(tenantId)
               .active()
               .latestVersion()
-              .singleResult()?.let { processDefinition ->
-                runtimeService.startProcessInstanceById(
-                  processDefinition.id,
-                  payload[CommonRestrictions.BUSINESS_KEY]?.toString(),
-                  payload,
-                ).toProcessInformation()
-              }
+              .singleResult()
+            requireNotNull(processDefinition) { "No process definition found for key ${cmd.definitionKey} and tenant $tenantId" }
+            runtimeService.startProcessInstanceById(
+              processDefinition.id,
+              businessKey,
+              payload,
+            ).toProcessInformation()
           } else {
             runtimeService.startProcessInstanceByKey(
               cmd.definitionKey,
-              payload[CommonRestrictions.BUSINESS_KEY]?.toString(),
+              businessKey,
               payload,
             ).toProcessInformation()
           }
         }
 
       is StartProcessByMessageCmd ->
-        CompletableFuture.supplyAsync {
+        commandExecutor.execute {
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-005: starting a new process instance by message ${cmd.messageName}." }
           val payload = cmd.payloadSupplier.get()
-          var correlationBuilder = runtimeService
-            .createMessageCorrelation(cmd.messageName)
-          payload[CommonRestrictions.BUSINESS_KEY]?.apply {
-            correlationBuilder = correlationBuilder.processInstanceBusinessKey(payload[CommonRestrictions.BUSINESS_KEY]?.toString())
+          var correlationBuilder = runtimeService.createMessageCorrelation(cmd.messageName)
+          val businessKey = payload[CommonRestrictions.BUSINESS_KEY]
+          if (businessKey != null) {
+            correlationBuilder = correlationBuilder.processInstanceBusinessKey(businessKey.toString())
           }
           correlationBuilder
             .applyTenantRestrictions(ensureSupported(cmd.restrictions))
             .setVariables(payload)
             .correlateStartMessage()
             .toProcessInformation()
+        }
+
+      is StartProcessByDefinitionAtElementCmd ->
+        commandExecutor.execute {
+          logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-006: starting a new process instance by definition ${cmd.definitionKey} at element ${cmd.elementId}" }
+          val startProcessCommand = StartProcessByDefinitionCmd(
+            definitionKey = cmd.definitionKey,
+            payloadSupplier = cmd.payloadSupplier,
+            restrictions = cmd.restrictions,
+          )
+          val instance = this.startProcess(startProcessCommand).get()
+          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_KEY] as String
+          runtimeService.createModification(processDefinitionId)
+            .processInstanceIds(instance.instanceId)
+            .startBeforeActivity(cmd.elementId)
+            .execute()
+          instance
         }
 
       else -> throw IllegalArgumentException("Unsupported start command $cmd")
