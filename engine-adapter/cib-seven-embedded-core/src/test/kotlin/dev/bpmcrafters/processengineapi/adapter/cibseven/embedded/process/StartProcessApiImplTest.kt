@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByMessageCmd
@@ -12,14 +13,13 @@ import org.cibseven.bpm.engine.runtime.ProcessInstance
 import org.cibseven.community.mockito.QueryMocks
 import org.cibseven.community.mockito.process.ProcessDefinitionFake
 import org.cibseven.community.mockito.process.ProcessInstanceFake
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.whenever
 
 @ExtendWith(MockitoExtension::class)
@@ -31,8 +31,16 @@ class StartProcessApiImplTest {
   @Mock
   private lateinit var runtimeService: RuntimeService
 
-  @InjectMocks
   private lateinit var startProcessApi: StartProcessApiImpl
+
+  @BeforeEach
+  fun setUp() {
+    startProcessApi = StartProcessApiImpl(
+      runtimeService = runtimeService,
+      repositoryService = repositoryService,
+      commandExecutor = EngineCommandExecutor { it.run() }
+    )
+  }
 
   @Test
   fun `should start process via definition without payload`() {
