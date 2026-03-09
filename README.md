@@ -8,6 +8,19 @@
 
 This library provides an adapter implementation of [Process Engine API](https://github.com/bpm-crafters/process-engine-api) for [CIB Seven](https://github.com/cibseven/cibseven) process engine.
 
+## 📚 Documentation
+
+The documentation can be found [here](https://bpm-crafters.github.io/process-engine-api-docs/stable/) or in its
+respective [repository](https://github.com/bpm-crafters/process-engine-api-docs).
+
+## Compatibility
+
+| Adapter Version                                                                                       | CIB Seven Version | API Version |
+|-------------------------------------------------------------------------------------------------------|-------------------|-------------|
+| [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1) | 2.1.0             | 1.4         |
+| [2026.02.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.02.1) | 2.1.0             | 1.5         |
+
+
 ## Anatomy
 
 - `process-engine-adapter-cib-seven-testing`: Test fixtures and utilities for testing CIB Seven adapters
@@ -29,8 +42,3 @@ Add the BOM to your Maven project and add the corresponding adapter implementati
 </dependency>
 ```
 
-## Compatibility
-
-| Adapter Version                                                                                       | CIB Seven Version | API Version |
-|-------------------------------------------------------------------------------------------------------|-------------------|-------------|
-| [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1) | 2.1.0             | 1.4         |
