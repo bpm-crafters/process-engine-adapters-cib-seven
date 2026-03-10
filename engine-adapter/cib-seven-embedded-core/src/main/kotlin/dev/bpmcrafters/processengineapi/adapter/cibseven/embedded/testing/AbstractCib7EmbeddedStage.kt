@@ -1,11 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.testing
 
 import com.tngtech.jgiven.Stage
-import com.tngtech.jgiven.annotation.As
-import com.tngtech.jgiven.annotation.ExpectedScenarioState
-import com.tngtech.jgiven.annotation.ProvidedScenarioState
-import com.tngtech.jgiven.annotation.Quoted
-import com.tngtech.jgiven.annotation.ScenarioState
+import com.tngtech.jgiven.annotation.*
 import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
@@ -27,15 +23,7 @@ import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
 import dev.bpmcrafters.processengineapi.deploy.NamedResource.Companion.fromClasspath
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
-import dev.bpmcrafters.processengineapi.task.CompleteTaskByErrorCmd
-import dev.bpmcrafters.processengineapi.task.CompleteTaskCmd
-import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
-import dev.bpmcrafters.processengineapi.task.SubscribeForTaskCmd
-import dev.bpmcrafters.processengineapi.task.TaskInformation
-import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
-import dev.bpmcrafters.processengineapi.task.TaskType
-import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
-import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
+import dev.bpmcrafters.processengineapi.task.*
 import dev.bpmcrafters.processengineapi.task.support.UserTaskSupport
 import org.assertj.core.api.Assertions
 import org.assertj.core.util.Lists
@@ -155,7 +143,13 @@ abstract class AbstractCib7EmbeddedStage<SUBTYPE : AbstractCib7EmbeddedStage<SUB
     )
 
     embeddedPullServiceTaskDelivery = EmbeddedPullServiceTaskDelivery(
-      processEngineServices.externalTaskService, workerId, subscriptionRepository, Int.MAX_VALUE, 1000, 1000, 1, Executors.newFixedThreadPool(1)
+      processEngineServices.externalTaskService,
+      workerId, subscriptionRepository,
+      Int.MAX_VALUE,
+      1000,
+      1000,
+      1,
+      Executors.newFixedThreadPool(1)
     )
 
     taskSubscriptionApi = Cib7TaskSubscriptionApiImpl(

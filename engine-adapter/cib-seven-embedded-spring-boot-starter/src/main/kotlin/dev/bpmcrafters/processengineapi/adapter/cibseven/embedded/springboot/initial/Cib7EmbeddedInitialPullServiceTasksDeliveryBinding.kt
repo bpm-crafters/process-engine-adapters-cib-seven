@@ -40,7 +40,7 @@ open class Cib7EmbeddedInitialPullServiceTasksDeliveryBinding(
     lockDurationInSeconds = adapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = adapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = adapterProperties.serviceTasks.retries,
-    executorService = executorService
+    executorService = executorService,
   )
 
   @EventListener
