@@ -17,8 +17,10 @@ respective [repository](https://github.com/bpm-crafters/process-engine-api-docs)
 
 | Adapter Version                                                                                       | CIB Seven Version | API Version |
 |-------------------------------------------------------------------------------------------------------|-------------------|-------------|
-| [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1) | 2.1.0             | 1.4         |
+| [2026.04.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.04.1) | 2.1.0             | 1.5         |
 | [2026.02.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.02.1) | 2.1.0             | 1.5         |
+| [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1) | 2.1.0             | 1.4         |
+
 
 
 ## Anatomy
