@@ -28,7 +28,7 @@ class EmbeddedPullServiceTaskDelivery(
   private val lockDurationInSeconds: Long,
   private val retryTimeoutInSeconds: Long,
   private val retries: Int,
-  private val executorService: ExecutorService
+  private val executorService: ExecutorService,
 ) : ExternalServiceTaskDelivery, RefreshableDelivery {
 
   /**
@@ -123,22 +123,26 @@ class EmbeddedPullServiceTaskDelivery(
     val customLockDuration = subscription.restrictions["workerLockDurationInMilliseconds"]
     return customLockDuration?.toLong() ?: (lockDurationInSeconds * 1000)
   }
-
-  private fun TaskSubscriptionHandle.matches(task: LockedExternalTask): Boolean {
-    return this.taskType == TaskType.EXTERNAL
-      && (this.taskDescriptionKey == null || this.taskDescriptionKey == task.topicName)
-      && this.restrictions.all {
-      when (it.key) {
-        CommonRestrictions.EXECUTION_ID -> it.value == task.executionId
-        CommonRestrictions.ACTIVITY_ID -> it.value == task.activityId
-        CommonRestrictions.BUSINESS_KEY -> it.value == task.businessKey
-        CommonRestrictions.TENANT_ID -> it.value == task.tenantId
-        CommonRestrictions.PROCESS_INSTANCE_ID -> it.value == task.processInstanceId
-        CommonRestrictions.PROCESS_DEFINITION_KEY -> it.value == task.processDefinitionKey
-        CommonRestrictions.PROCESS_DEFINITION_ID -> it.value == task.processDefinitionId
-        CommonRestrictions.PROCESS_DEFINITION_VERSION_TAG -> it.value == task.processDefinitionVersionTag
-        else -> false
-      }
-    }
-  }
 }
+
+internal fun TaskSubscriptionHandle.matches(task: LockedExternalTask): Boolean =
+  this.taskType == TaskType.EXTERNAL
+    && (this.taskDescriptionKey == null || this.taskDescriptionKey == task.topicName)
+    && this.restrictions
+      .minus("workerLockDurationInMilliseconds")
+      .all { (key, value) ->
+        when (key) {
+          CommonRestrictions.EXECUTION_ID -> value == task.executionId
+          CommonRestrictions.ACTIVITY_ID -> value == task.activityId
+          CommonRestrictions.BUSINESS_KEY -> value == task.businessKey
+          CommonRestrictions.TENANT_ID -> value == task.tenantId
+          CommonRestrictions.PROCESS_INSTANCE_ID -> value == task.processInstanceId
+          CommonRestrictions.PROCESS_DEFINITION_KEY -> value == task.processDefinitionKey
+          CommonRestrictions.PROCESS_DEFINITION_ID -> value == task.processDefinitionId
+          CommonRestrictions.PROCESS_DEFINITION_VERSION_TAG -> value == task.processDefinitionVersionTag
+          else -> {
+            logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-041: Unknown restriction key: $key" }
+            false
+          }
+        }
+      }
