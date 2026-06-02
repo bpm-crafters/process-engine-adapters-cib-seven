@@ -13,7 +13,7 @@
   <name>Example: Java CIB-seven Embedded</name>
 
   <properties>
-    <cibseven.version>2.1.0</cibseven.version>
+    <cibseven.version>2.2.0</cibseven.version>
   </properties>
 
   <dependencyManagement>
