@@ -22,11 +22,6 @@
     <spring-boot.version>3.5.13</spring-boot.version>
     <process-engine-api.version>1.5</process-engine-api.version>
     <cibseven.version>2.2.0</cibseven.version>
-    <!-- Pinned to 7.0.13: maven-parent 2026.06.1 ships kotlin-logging 8.0.4, whose
-         KLogger.info(String) signature is binary-incompatible with the
-         cibseven-process-test-coverage 2.1.0 test library (NoSuchMethodError).
-         Remove once a process-test-coverage release supports kotlin-logging 8.x. -->
-    <kotlin-logging.version>7.0.13</kotlin-logging.version>
     <!-- TEST -->
     <mockito.version>6.3.0</mockito.version>
     <assertj.version>3.27.7</assertj.version>
