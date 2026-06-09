@@ -46,3 +46,4 @@ _tmp/
 .repository/
 .DS_Store
 .claude
+.claude/logs/

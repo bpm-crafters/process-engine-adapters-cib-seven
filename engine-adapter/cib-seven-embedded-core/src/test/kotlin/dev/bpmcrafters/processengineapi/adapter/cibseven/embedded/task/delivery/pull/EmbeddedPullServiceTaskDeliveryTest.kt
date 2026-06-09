@@ -36,7 +36,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
     val subscription = TaskSubscriptionHandle(
       taskType = TaskType.EXTERNAL,
       payloadDescription = null,
-      restrictions = mapOf("workerLockDurationInMilliseconds" to CUSTOM_LOCK_DURATION_MS.toString()),
+      restrictions = mapOf(CommonRestrictions.WORKER_LOCK_DURATION_IN_MILLISECONDS to CUSTOM_LOCK_DURATION_MS.toString()),
       taskDescriptionKey = "custom-topic",
       action = { _, _ -> },
       termination = {}
@@ -70,7 +70,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
       payloadDescription = null,
       restrictions = mapOf(
         CommonRestrictions.PROCESS_DEFINITION_ID to "pd-1",
-        "workerLockDurationInMilliseconds" to "25000"
+        CommonRestrictions.WORKER_LOCK_DURATION_IN_MILLISECONDS to "25000"
       ),
       taskDescriptionKey = "test-topic",
       action = { _, _ -> },
@@ -91,7 +91,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
       payloadDescription = null,
       restrictions = mapOf(
         CommonRestrictions.PROCESS_DEFINITION_ID to "pd-1",
-        "workerLockDurationInMilliseconds" to "25000"
+        CommonRestrictions.WORKER_LOCK_DURATION_IN_MILLISECONDS to "25000"
       ),
       taskDescriptionKey = "test-topic",
       action = { _, _ -> },
