@@ -16,7 +16,8 @@ import java.util.*
 fun Task.toTaskInformation(candidates: Set<IdentityLink>, processDefinitionKey: String? = null) =
   TaskInformation(
     taskId = this.id,
-    meta = mapOf(
+    meta = metaOf(
+      CommonRestrictions.PROCESS_DEFINITION_KEY to processDefinitionKey,
       CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,
       CommonRestrictions.ACTIVITY_ID to this.taskDefinitionKey,
       CommonRestrictions.TENANT_ID to this.tenantId,
@@ -31,23 +32,18 @@ fun Task.toTaskInformation(candidates: Set<IdentityLink>, processDefinitionKey: 
       "candidateUsers" to candidates.toUsersString(),
       "candidateGroups" to candidates.toGroupsString(),
       "lastUpdatedDate" to this.lastUpdated.toDateString()
-    ).let {
-      if (processDefinitionKey != null) {
-        it + (CommonRestrictions.PROCESS_DEFINITION_KEY to processDefinitionKey)
-      } else {
-        it
-      }
-    }
+    )
   )
 
 fun DelegateTask.toTaskInformation() =
   TaskInformation(
     taskId = this.id,
-    meta = mapOf(
+    meta = metaOf(
       CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,
       CommonRestrictions.ACTIVITY_ID to this.taskDefinitionKey,
       CommonRestrictions.TENANT_ID to this.tenantId,
       CommonRestrictions.PROCESS_INSTANCE_ID to this.processInstanceId,
+      CommonRestrictions.BUSINESS_KEY to this.variables?.get(CommonRestrictions.BUSINESS_KEY)?.toString(),
       "taskName" to this.name,
       "taskDescription" to this.description,
       "assignee" to this.assignee,
@@ -63,22 +59,34 @@ fun DelegateTask.toTaskInformation() =
 fun LockedExternalTask.toTaskInformation(): TaskInformation =
   TaskInformation(
     taskId = this.id,
-    meta = mapOf(
+    meta = metaOf(
       CommonRestrictions.ACTIVITY_ID to this.activityId,
       CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,
       CommonRestrictions.PROCESS_DEFINITION_KEY to this.processDefinitionKey,
       CommonRestrictions.PROCESS_INSTANCE_ID to this.processInstanceId,
       CommonRestrictions.TENANT_ID to this.tenantId,
+      CommonRestrictions.BUSINESS_KEY to this.businessKey,
       "topicName" to this.topicName,
       "creationDate" to this.createTime.toDateString(),
-      TaskInformation.RETRIES to (this.retries?.toString() ?: ""),
+      TaskInformation.RETRIES to this.retries?.toString(),
     )
   )
 
 /**
+ * Creates a map of the provided pairs, dropping any pair whose value is `null`.
+ */
+fun metaOf(vararg pairs: Pair<String, String?>): Map<String, String> =
+  sequenceOf(*pairs)
+    .filter { it.second != null }
+    .associate {
+      @Suppress("UNCHECKED_CAST")
+      it as Pair<String, String>
+    }
+
+/**
  * Converts engine internal representation into a string.
  */
-fun Date?.toDateString() = this?.toInstant()?.toIso8601() ?: ""
+fun Date?.toDateString() = this?.toInstant()?.toIso8601()
 
 /**
  * Converts to offset date time in ISO8601 in UTC.

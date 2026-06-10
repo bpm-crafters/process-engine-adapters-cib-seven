@@ -6,14 +6,18 @@ import org.cibseven.bpm.engine.impl.persistence.entity.IdentityLinkEntity
 import org.cibseven.bpm.engine.task.IdentityLink
 import org.cibseven.community.mockito.delegate.DelegateTaskFake
 import org.cibseven.community.mockito.task.TaskFake
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.NullSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.Instant
 import java.util.*
 
 class TaskInformationExtensionsKtTest {
 
-  @Test
-  fun `should map Task`() {
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = ["Sat, 12 Aug 1995 13:30:00 GMT+0430"])
+  fun `should map Task`(maybeNullDate: Date?) {
     val now = Date.from(Instant.now())
     val task = TaskFake.builder()
       .id("taskId")
@@ -25,10 +29,10 @@ class TaskInformationExtensionsKtTest {
       .description("description")
       .assignee("assignee")
       .createTime(now)
-      .followUpDate(now)
-      .dueDate(now)
+      .followUpDate(maybeNullDate)
+      .dueDate(maybeNullDate)
       .formKey("formKey")
-      .lastUpdated(now)
+      .lastUpdated(maybeNullDate)
       .build()
 
     val identityLinks =
@@ -45,16 +49,24 @@ class TaskInformationExtensionsKtTest {
     assertThat(taskInformation.meta["taskDescription"]).isEqualTo("description")
     assertThat(taskInformation.meta["assignee"]).isEqualTo("assignee")
     assertThat(taskInformation.meta["creationDate"]).isEqualTo(now.toDateString())
-    assertThat(taskInformation.meta["followUpDate"]).isEqualTo(now.toDateString())
-    assertThat(taskInformation.meta["dueDate"]).isEqualTo(now.toDateString())
     assertThat(taskInformation.meta["formKey"]).isEqualTo("formKey")
     assertThat(taskInformation.meta["candidateUsers"]).isEqualTo("user-1,user-2")
     assertThat(taskInformation.meta["candidateGroups"]).isEqualTo("group")
-    assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(now.toDateString())
+    if (maybeNullDate == null) {
+      assertThat(taskInformation.meta).doesNotContainKey("followUpDate")
+      assertThat(taskInformation.meta).doesNotContainKey("dueDate")
+      assertThat(taskInformation.meta).doesNotContainKey("lastUpdatedDate")
+    } else {
+      assertThat(taskInformation.meta["followUpDate"]).isEqualTo(maybeNullDate.toDateString())
+      assertThat(taskInformation.meta["dueDate"]).isEqualTo(maybeNullDate.toDateString())
+      assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(maybeNullDate.toDateString())
+    }
   }
 
-  @Test
-  fun `should map DelegateTask`() {
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = ["Sat, 12 Aug 1995 13:30:00 GMT+0430"])
+  fun `should map DelegateTask`(maybeNullDate: Date?) {
     val now = Date.from(Instant.now())
 
     var delegateTask = DelegateTaskFake("taskId")
@@ -66,9 +78,10 @@ class TaskInformationExtensionsKtTest {
     delegateTask = delegateTask.withDescription("description")
     delegateTask = delegateTask.withAssignee("assignee")
     delegateTask = delegateTask.withCreateTime(now)
-    delegateTask = delegateTask.withFollowUpDate(now)
-    delegateTask = delegateTask.withLastUpdated(now)
-    delegateTask.dueDate = now
+    delegateTask = delegateTask.withFollowUpDate(maybeNullDate)
+    delegateTask = delegateTask.withLastUpdated(maybeNullDate)
+    delegateTask = delegateTask.withVariable(CommonRestrictions.BUSINESS_KEY, "businessKey")
+    delegateTask.dueDate = maybeNullDate
     delegateTask.addGroupIdentityLink("group-1", "CANDIDATE")
     delegateTask.addGroupIdentityLink("group-2", "CANDIDATE")
     delegateTask.addUserIdentityLink("user-1", "CANDIDATE")
@@ -80,17 +93,23 @@ class TaskInformationExtensionsKtTest {
     assertThat(taskInformation.meta[CommonRestrictions.PROCESS_DEFINITION_ID]).isEqualTo("processDefinitionId")
     assertThat(taskInformation.meta[CommonRestrictions.ACTIVITY_ID]).isEqualTo("taskDefinitionKey")
     assertThat(taskInformation.meta[CommonRestrictions.TENANT_ID]).isEqualTo("tenantId")
+    assertThat(taskInformation.meta[CommonRestrictions.BUSINESS_KEY]).isEqualTo("businessKey")
     assertThat(taskInformation.meta["taskName"]).isEqualTo("name")
     assertThat(taskInformation.meta["taskDescription"]).isEqualTo("description")
     assertThat(taskInformation.meta["assignee"]).isEqualTo("assignee")
     assertThat(taskInformation.meta["creationDate"]).isEqualTo(now.toDateString())
-    assertThat(taskInformation.meta["followUpDate"]).isEqualTo(now.toDateString())
-    assertThat(taskInformation.meta["dueDate"]).isEqualTo(now.toDateString())
     assertThat(taskInformation.meta["formKey"]).isNull()
     assertThat(taskInformation.meta["candidateUsers"]).isEqualTo("user-1,user-2")
     assertThat(taskInformation.meta["candidateGroups"]).isEqualTo("group-1,group-2")
+    if (maybeNullDate == null) {
+      assertThat(taskInformation.meta).doesNotContainKey("followUpDate")
+      assertThat(taskInformation.meta).doesNotContainKey("dueDate")
+    } else {
+      assertThat(taskInformation.meta["followUpDate"]).isEqualTo(maybeNullDate.toDateString())
+      assertThat(taskInformation.meta["dueDate"]).isEqualTo(maybeNullDate.toDateString())
+    }
     // TODO: bug in cib-seven-mockito (https://github.com/cibseven-community-hub/cibseven-mockito/issues/8)
-    // assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(now.toDateString())
+    // lastUpdated is not reflected by DelegateTaskFake, so "lastUpdatedDate" is not asserted here.
   }
 
   private fun identityLink(userId: String? = null, groupId: String? = null): IdentityLink {
