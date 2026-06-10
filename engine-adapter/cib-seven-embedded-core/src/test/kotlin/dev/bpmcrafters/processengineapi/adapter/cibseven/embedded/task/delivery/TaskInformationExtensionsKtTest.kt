@@ -89,8 +89,7 @@ class TaskInformationExtensionsKtTest {
     assertThat(taskInformation.meta["formKey"]).isNull()
     assertThat(taskInformation.meta["candidateUsers"]).isEqualTo("user-1,user-2")
     assertThat(taskInformation.meta["candidateGroups"]).isEqualTo("group-1,group-2")
-    // TODO: bug in cib-seven-mockito (https://github.com/cibseven-community-hub/cibseven-mockito/issues/8)
-    // assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(now.toDateString())
+    assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(now.toDateString())
   }
 
   private fun identityLink(userId: String? = null, groupId: String? = null): IdentityLink {
