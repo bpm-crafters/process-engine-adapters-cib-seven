@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import java.util.*
@@ -40,5 +41,42 @@ class DeploymentApiImplTest {
     assertThat(deploymentInformation.tenantId).isNull()
   }
 
+  @Test
+  fun `duplicate filtering is not enabled by default`() {
+    val deploymentBuilder = givenDeploymentBuilder()
+
+    deploymentApiImpl.deploy(
+      DeployBundleCommand(listOf(NamedResource.fromClasspath("bpmn/simple-process.bpmn")), "")
+    ).get()
+
+    verify(deploymentBuilder, never()).enableDuplicateFiltering(any())
+  }
+
+  @Test
+  fun `duplicate filtering is enabled when deployOnlyOnChange is true`() {
+    val deploymentBuilder = givenDeploymentBuilder()
+    val deployOnlyOnChangeApi = DeploymentApiImpl(
+      repositoryService,
+      EngineCommandExecutor(Executor { it.run() }),
+      deployOnlyOnChange = true
+    )
+
+    deployOnlyOnChangeApi.deploy(
+      DeployBundleCommand(listOf(NamedResource.fromClasspath("bpmn/simple-process.bpmn")), "")
+    ).get()
+
+    verify(deploymentBuilder).enableDuplicateFiltering(eq(true))
+  }
+
+  private fun givenDeploymentBuilder(): DeploymentBuilder {
+    val deploymentBuilder: DeploymentBuilder = mock()
+    given(repositoryService.createDeployment()).willReturn(deploymentBuilder)
+    val deployment: Deployment = mock()
+    given(deploymentBuilder.deploy()).willReturn(deployment)
+    given(deployment.tenantId).willReturn(null)
+    given(deployment.deploymentTime).willReturn(Date())
+    given(deployment.id).willReturn("myDeploymentId")
+    return deploymentBuilder
+  }
 
 }
