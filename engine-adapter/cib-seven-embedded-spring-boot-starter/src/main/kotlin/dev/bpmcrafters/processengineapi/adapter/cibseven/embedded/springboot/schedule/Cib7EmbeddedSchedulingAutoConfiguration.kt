@@ -52,10 +52,9 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
   @Order(200)
   @ConditionalOnMissingQualifiedBean(beanClass = TaskScheduler::class, qualifier = "cib-seven-embedded-task-scheduler")
   fun taskScheduler(): TaskScheduler {
-    val threadPoolTaskScheduler = ThreadPoolTaskScheduler().apply {
-      poolSize = 2 // we have two schedulers, one for user tasks one for service tasks
-      setThreadNamePrefix("CIB-SEVEN-EMBEDDED-SCHEDULER-")
-    }
+    val threadPoolTaskScheduler = ThreadPoolTaskScheduler()
+    threadPoolTaskScheduler.poolSize = 2 // we have two schedulers, one for user tasks one for service tasks
+    threadPoolTaskScheduler.setThreadNamePrefix("CIB-SEVEN-EMBEDDED-SCHEDULER-")
     return threadPoolTaskScheduler
   }
 
