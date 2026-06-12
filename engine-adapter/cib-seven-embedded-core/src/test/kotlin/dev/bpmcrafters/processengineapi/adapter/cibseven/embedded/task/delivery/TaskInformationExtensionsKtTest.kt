@@ -104,12 +104,12 @@ class TaskInformationExtensionsKtTest {
     if (maybeNullDate == null) {
       assertThat(taskInformation.meta).doesNotContainKey("followUpDate")
       assertThat(taskInformation.meta).doesNotContainKey("dueDate")
+      assertThat(taskInformation.meta).doesNotContainKey("lastUpdatedDate")
     } else {
       assertThat(taskInformation.meta["followUpDate"]).isEqualTo(maybeNullDate.toDateString())
       assertThat(taskInformation.meta["dueDate"]).isEqualTo(maybeNullDate.toDateString())
+      assertThat(taskInformation.meta["lastUpdatedDate"]).isEqualTo(maybeNullDate.toDateString())
     }
-    // TODO: bug in cib-seven-mockito (https://github.com/cibseven-community-hub/cibseven-mockito/issues/8)
-    // lastUpdated is not reflected by DelegateTaskFake, so "lastUpdatedDate" is not asserted here.
   }
 
   private fun identityLink(userId: String? = null, groupId: String? = null): IdentityLink {
