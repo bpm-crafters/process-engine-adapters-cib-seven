@@ -5,7 +5,7 @@
   <parent>
     <groupId>dev.bpm-crafters.maven.parent</groupId>
     <artifactId>maven-parent</artifactId>
-    <version>2026.02.1</version>
+    <version>2026.06.1</version>
     <relativePath/>
   </parent>
 
@@ -22,6 +22,10 @@
     <spring-boot.version>4.0.7</spring-boot.version>
     <process-engine-api.version>1.6</process-engine-api.version>
     <cibseven.version>2.2.0</cibseven.version>
+    <!-- Pin to 7.x: maven-parent 2026.06.1 manages kotlin-logging 8, but the surrounding ecosystem
+         (process-engine-api, cibseven-process-test-coverage) is still compiled against 7.x,
+         and 8.x removed the non-lambda KLogger overloads (NoSuchMethodError at runtime) -->
+    <kotlin-logging.version>7.0.13</kotlin-logging.version>
     <!-- TEST -->
     <mockito.version>6.3.0</mockito.version>
     <assertj.version>3.27.7</assertj.version>
