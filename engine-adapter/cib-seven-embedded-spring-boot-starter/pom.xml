@@ -18,7 +18,7 @@
       <dependency>
         <groupId>org.cibseven.bpm</groupId>
         <artifactId>cibseven-bom</artifactId>
-        <version>2.1.0</version>
+        <version>${cibseven.version}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -51,8 +51,8 @@
     </dependency>
     <dependency>
       <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter</artifactId>
-      <version>2.1.0</version>
+      <artifactId>cibseven-bpm-spring-boot-starter-4</artifactId>
+      <version>${cibseven.version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -64,13 +64,20 @@
     </dependency>
     <dependency>
       <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter-test</artifactId>
-      <version>2.1.0</version>
+      <artifactId>cibseven-bpm-spring-boot-starter-test-4</artifactId>
+      <version>${cibseven.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Since the Spring Boot 4 module split, the DataSource / transaction manager auto-configurations
+         live in spring-boot-jdbc, which the cibseven starter-4 does not bring transitively anymore -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

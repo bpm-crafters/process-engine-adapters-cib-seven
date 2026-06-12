@@ -28,9 +28,8 @@ dev:
             delivery-strategy: embedded_scheduled
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 10
-# The Spring Boot 4 webapp (cibseven-bpm-spring-boot-starter-webapp-4) ships the new CIB seven
-# webclient, which requires a base64 JWT secret of at least 155 characters.
-# DO NOT reuse this example secret in production.
+# The CIB seven webapp ships the new webclient (since 2.2.0), which requires a base64 JWT secret
+# of at least 155 characters. DO NOT reuse this example secret in production.
 cibseven:
   webclient:
     authentication:

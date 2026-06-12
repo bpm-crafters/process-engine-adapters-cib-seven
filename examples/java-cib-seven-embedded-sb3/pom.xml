@@ -9,8 +9,14 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>process-engine-api-example-java-cib-seven-embedded</artifactId>
-  <name>Example: Java CIB-seven Embedded</name>
+  <artifactId>process-engine-api-example-java-cib-seven-embedded-sb3</artifactId>
+  <name>Example: Java CIB-seven Embedded (Spring Boot 3)</name>
+
+  <properties>
+    <!-- Proves that the adapter starter (built against Spring Boot 4) still works on Spring Boot 3 -->
+    <spring-boot.version>3.5.14</spring-boot.version>
+    <springdoc-openapi.version>2.8.17</springdoc-openapi.version>
+  </properties>
 
   <dependencyManagement>
     <dependencies>
@@ -36,15 +42,10 @@
       <artifactId>process-engine-adapter-cib-seven-embedded-spring-boot-starter</artifactId>
     </dependency>
 
+    <!-- Spring Boot 3 line of the CIB seven starters (no -4 suffix) -->
     <dependency>
       <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter-webapp-4</artifactId>
-    </dependency>
-    <!-- Since the Spring Boot 4 module split, the DataSource / transaction manager auto-configurations
-         live in spring-boot-jdbc, which the cibseven starter-4 does not bring transitively anymore -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
+      <artifactId>cibseven-bpm-spring-boot-starter-webapp</artifactId>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
