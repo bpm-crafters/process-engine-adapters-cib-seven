@@ -24,9 +24,11 @@ respective [repository](https://github.com/bpm-crafters/process-engine-api-docs)
 
 ### Spring Boot 4 vs. Spring Boot 3
 
-The adapter starter is built against Spring Boot 4 but remains compatible with Spring Boot 3.5
-(verified by the `examples/java-cib-seven-embedded-sb3` example). The CIB seven engine starters are
-`provided` dependencies of the adapter, so you pick the line matching your application:
+The adapter starter is built against Spring Boot 4 but remains compatible with Spring Boot 3.5.
+This is verified in every CI build: the `examples/java-cib-seven-embedded-sb3` example boots the
+full application (embedded engine, webapp and adapter auto-configuration) on Spring Boot 3.5 as
+part of `mvn verify`. The CIB seven engine starters are `provided` dependencies of the adapter,
+so you pick the line matching your application:
 
 - **Spring Boot 4**: use the CIB seven starters with the `-4` suffix (e.g.
   `cibseven-bpm-spring-boot-starter-4`, `cibseven-bpm-spring-boot-starter-webapp-4`). Note that since

@@ -40,8 +40,6 @@
       <groupId>org.cibseven.bpm.springboot</groupId>
       <artifactId>cibseven-bpm-spring-boot-starter-webapp-4</artifactId>
     </dependency>
-    <!-- Since the Spring Boot 4 module split, the DataSource / transaction manager auto-configurations
-         live in spring-boot-jdbc, which the cibseven starter-4 does not bring transitively anymore -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jdbc</artifactId>
