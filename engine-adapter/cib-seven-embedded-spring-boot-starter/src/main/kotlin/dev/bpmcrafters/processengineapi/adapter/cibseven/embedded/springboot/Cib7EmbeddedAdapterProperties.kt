@@ -22,12 +22,29 @@ class Cib7EmbeddedAdapterProperties(
    * Configuration of user tasks.
    */
   @NestedConfigurationProperty
-  val userTasks: UserTasks
+  val userTasks: UserTasks,
+
+  /**
+   * Configuration of process deployment.
+   */
+  @NestedConfigurationProperty
+  val deployment: Deployment = Deployment()
 ) {
 
   companion object {
     const val DEFAULT_PREFIX = "dev.bpm-crafters.process-api.adapter.cib-seven-embedded"
   }
+
+  /**
+   * Configuration for process deployment.
+   */
+  data class Deployment(
+    /**
+     * If `true`, unchanged resources are not redeployed as new versions.
+     * Defaults to `false` to match the [CIB Seven] default
+     */
+    val deployOnlyOnChange: Boolean = false
+  )
 
   /**
    * Configuration for user task handling.
