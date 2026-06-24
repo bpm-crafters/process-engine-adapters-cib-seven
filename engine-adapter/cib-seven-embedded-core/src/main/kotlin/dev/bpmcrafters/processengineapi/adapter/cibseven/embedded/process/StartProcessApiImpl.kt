@@ -9,6 +9,7 @@ import dev.bpmcrafters.processengineapi.process.ProcessInformation
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
+import dev.bpmcrafters.processengineapi.process.StartProcessByMessageAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByMessageCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessCommand
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -81,6 +82,23 @@ class StartProcessApiImpl(
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-006: starting a new process instance by definition ${cmd.definitionKey} at element ${cmd.elementId}" }
           val startProcessCommand = StartProcessByDefinitionCmd(
             definitionKey = cmd.definitionKey,
+            payloadSupplier = cmd.payloadSupplier,
+            restrictions = cmd.restrictions,
+          )
+          val instance = this.startProcess(startProcessCommand).get()
+          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_KEY] as String
+          runtimeService.createModification(processDefinitionId)
+            .processInstanceIds(instance.instanceId)
+            .startBeforeActivity(cmd.elementId)
+            .execute()
+          instance
+        }
+
+      is StartProcessByMessageAtElementCmd ->
+        commandExecutor.execute {
+          logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-015: starting a new process instance by message ${cmd.messageName} at element ${cmd.elementId}" }
+          val startProcessCommand = StartProcessByMessageCmd(
+            messageName = cmd.messageName,
             payloadSupplier = cmd.payloadSupplier,
             restrictions = cmd.restrictions,
           )
