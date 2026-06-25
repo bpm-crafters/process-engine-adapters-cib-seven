@@ -49,6 +49,21 @@
       <artifactId>h2</artifactId>
     </dependency>
 
+    <!-- Spin JSON dataformat: required so the engine can serialize POJO process variables with
+         default-serialization-format=application/json (e.g. the happy-path service-task handler).
+         The cibseven starters do not bring Spin transitively; without it the service task fails
+         at runtime with "Cannot find serializer". Covered by SimpleProcessHappyPathITest. -->
+    <dependency>
+      <groupId>org.cibseven.bpm</groupId>
+      <artifactId>cibseven-engine-plugin-spin</artifactId>
+      <version>${cibseven.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cibseven.spin</groupId>
+      <artifactId>cibseven-spin-dataformat-json-jackson</artifactId>
+      <version>${cibseven.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
