@@ -21,9 +21,9 @@ import org.cibseven.bpm.engine.TaskService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnThreading
-import org.springframework.boot.autoconfigure.thread.Threading
 import org.springframework.boot.task.SimpleAsyncTaskSchedulerBuilder
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder
+import org.springframework.boot.thread.Threading
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
@@ -56,7 +56,7 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
   fun taskScheduler(): TaskScheduler {
     val threadPoolTaskScheduler = ThreadPoolTaskScheduler()
     threadPoolTaskScheduler.poolSize = 2 // we have two schedulers, one for user tasks one for service tasks
-    threadPoolTaskScheduler.threadNamePrefix = "CIB-SEVEN-EMBEDDED-SCHEDULER-"
+    threadPoolTaskScheduler.setThreadNamePrefix("CIB-SEVEN-EMBEDDED-SCHEDULER-")
     return threadPoolTaskScheduler
   }
 

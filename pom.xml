@@ -5,7 +5,7 @@
   <parent>
     <groupId>dev.bpm-crafters.maven.parent</groupId>
     <artifactId>maven-parent</artifactId>
-    <version>2026.02.1</version>
+    <version>2026.06.1</version>
     <relativePath/>
   </parent>
 
@@ -19,9 +19,10 @@
 
   <properties>
     <!-- COMMON GLOBAL -->
-    <spring-boot.version>3.5.15</spring-boot.version>
+    <spring-boot.version>4.0.7</spring-boot.version>
     <process-engine-api.version>1.6</process-engine-api.version>
-    <cibseven.version>2.1.0</cibseven.version>
+    <cibseven.version>2.2.0</cibseven.version>
+    <kotlin-logging.version>7.0.13</kotlin-logging.version>
     <!-- TEST -->
     <mockito.version>6.3.0</mockito.version>
     <assertj.version>3.27.7</assertj.version>
