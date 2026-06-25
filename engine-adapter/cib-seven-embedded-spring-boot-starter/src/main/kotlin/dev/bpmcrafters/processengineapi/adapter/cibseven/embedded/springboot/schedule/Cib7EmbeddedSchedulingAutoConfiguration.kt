@@ -20,16 +20,18 @@ import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.TaskService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
+import org.springframework.boot.autoconfigure.condition.ConditionalOnThreading
 import org.springframework.boot.task.SimpleAsyncTaskSchedulerBuilder
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder
+import org.springframework.boot.thread.Threading
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
-import org.springframework.core.env.Environment
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import java.util.concurrent.ExecutorService
 
@@ -58,29 +60,19 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
     return threadPoolTaskScheduler
   }
 
-  /*
-   * Restores the application's default task scheduler, which backs off because this configuration
-   * contributes its own TaskScheduler bean. Decides between virtual and platform threads at runtime
-   * (mirroring Spring Boot's Threading.VIRTUAL.isActive) instead of using @ConditionalOnThreading,
-   * because the Threading enum moved packages between Spring Boot 3 and 4 and the adapter supports both.
-   */
   @Bean("taskScheduler")
   @Order(100)
-  fun applicationTaskScheduler(
-    environment: Environment,
-    simpleAsyncTaskSchedulerBuilder: SimpleAsyncTaskSchedulerBuilder,
-    threadPoolTaskSchedulerBuilder: ThreadPoolTaskSchedulerBuilder
-  ): TaskScheduler {
-    return if (virtualThreadsActive(environment)) {
-      simpleAsyncTaskSchedulerBuilder.build()
-    } else {
-      threadPoolTaskSchedulerBuilder.build()
-    }
+  @ConditionalOnThreading(Threading.VIRTUAL)
+  fun taskSchedulerVirtualThreads(builder: SimpleAsyncTaskSchedulerBuilder): SimpleAsyncTaskScheduler {
+    return builder.build()
   }
 
-  private fun virtualThreadsActive(environment: Environment): Boolean =
-    environment.getProperty("spring.threads.virtual.enabled", Boolean::class.java, false)
-      && Runtime.version().feature() >= 21
+  @Bean("taskScheduler")
+  @Order(100)
+  @ConditionalOnThreading(Threading.PLATFORM)
+  fun taskSchedulerPlatformThreads(threadPoolTaskSchedulerBuilder: ThreadPoolTaskSchedulerBuilder): ThreadPoolTaskScheduler {
+    return threadPoolTaskSchedulerBuilder.build()
+  }
 
   @Bean("cib-seven-embedded-service-task-delivery")
   @Qualifier("cib-seven-embedded-service-task-delivery")
