@@ -4,6 +4,7 @@ import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
+import dev.bpmcrafters.processengineapi.process.StartProcessByMessageAtElementCmd
 import dev.bpmcrafters.processengineapi.process.StartProcessByMessageCmd
 import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.RuntimeService
@@ -156,9 +157,7 @@ class StartProcessApiImplTest {
     val businessKey = "myBusinessKey"
     val modificationBuilder = modifyProcessInstanceBuilderMock()
     val processDefinitionId = "simple-process:1:123"
-    val processInstance = ProcessInstanceFake.builder().id("instance-123")
-      .processDefinitionId(processDefinitionId)
-      .build()
+    val processInstance = processInstanceMock(processDefinitionId)
 
     whenever(runtimeService.startProcessInstanceByKey(anyString(), anyOrNull(), anyMap())).thenReturn(processInstance)
     whenever(runtimeService.createModification(processDefinitionId)).thenReturn(modificationBuilder)
@@ -179,14 +178,52 @@ class StartProcessApiImplTest {
     verify(modificationBuilder).execute()
   }
 
-  private fun messageCorrelationMock(): MessageCorrelationBuilder {
+  @Test
+  fun `should start process via message at element without payload`() {
+
+    // given
+    val businessKey = "myBusinessKey"
+    val modificationBuilder = modifyProcessInstanceBuilderMock()
+    val processDefinitionId = "simple-process:1:123"
+    val processInstance = processInstanceMock(processDefinitionId)
+    val correlationBuilder = messageCorrelationMock(processInstance)
+
+    whenever(runtimeService.createMessageCorrelation(any())).thenReturn(correlationBuilder)
+    whenever(runtimeService.createModification(processDefinitionId)).thenReturn(modificationBuilder)
+
+    val cmd = StartProcessByMessageAtElementCmd(
+      messageName = "startMessage",
+      elementId = "user-perform-task",
+      payloadSupplier = { mapOf(CommonRestrictions.BUSINESS_KEY to businessKey) }
+    )
+
+    // when
+    startProcessApi.startProcess(cmd).get()
+
+    // then
+    verify(runtimeService).createMessageCorrelation("startMessage")
+    verify(correlationBuilder).processInstanceBusinessKey(businessKey)
+    verify(runtimeService).createModification(processDefinitionId)
+    verify(modificationBuilder).startBeforeActivity("user-perform-task")
+    verify(modificationBuilder).execute()
+  }
+
+  private fun messageCorrelationMock(
+    processInstance: ProcessInstance = ProcessInstanceFake.builder().id("someId").build()
+  ): MessageCorrelationBuilder {
     val builder: MessageCorrelationBuilder = mock()
     lenient().whenever(builder.processInstanceBusinessKey(any())).thenReturn(builder)
     whenever(builder.setVariables(anyMap())).thenReturn(builder)
-    whenever(builder.correlateStartMessage()).thenReturn(ProcessInstanceFake.builder().id("someId").build())
+    whenever(builder.correlateStartMessage()).thenReturn(processInstance)
 
     return builder
   }
+
+  private fun processInstanceMock(processDefinitionId: String): ProcessInstance =
+    ProcessInstanceFake.builder()
+      .id("instance-123")
+      .processDefinitionId(processDefinitionId)
+      .build()
 
   private fun modifyProcessInstanceBuilderMock(): ModificationBuilder {
     val builder = mock<ModificationBuilder>()
