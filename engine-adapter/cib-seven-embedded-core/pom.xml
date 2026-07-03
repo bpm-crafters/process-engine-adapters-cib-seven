@@ -12,10 +12,6 @@
   <artifactId>process-engine-adapter-cib-seven-embedded-core</artifactId>
   <name>Adapter: CIB7 Embedded Core</name>
 
-  <properties>
-    <cibseven.version>2.1.0</cibseven.version>
-  </properties>
-
   <dependencyManagement>
     <dependencies>
       <!-- https://central.sonatype.com/artifact/org.cibseven.bpm/cibseven-bom -->
@@ -79,7 +75,7 @@
     </dependency>
     <dependency>
       <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter-test</artifactId>
+      <artifactId>cibseven-bpm-spring-boot-starter-test-4</artifactId>
       <version>${cibseven.version}</version>
       <scope>test</scope>
     </dependency>

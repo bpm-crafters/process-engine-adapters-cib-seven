@@ -12,10 +12,6 @@
   <artifactId>process-engine-api-example-java-cib-seven-embedded</artifactId>
   <name>Example: Java CIB-seven Embedded</name>
 
-  <properties>
-    <cibseven.version>2.1.0</cibseven.version>
-  </properties>
-
   <dependencyManagement>
     <dependencies>
       <!-- https://central.sonatype.com/artifact/org.cibseven.bpm/cibseven-bom -->
@@ -42,18 +38,22 @@
 
     <dependency>
       <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter-webapp</artifactId>
+      <artifactId>cibseven-bpm-spring-boot-starter-webapp-4</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.holunda</groupId>
-      <artifactId>camunda-platform-7-autologin</artifactId>
-      <version>2026.04.2</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.cibseven.bpm</groupId>
       <artifactId>cibseven-bpm-junit5</artifactId>
