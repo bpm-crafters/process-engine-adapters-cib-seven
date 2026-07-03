@@ -35,4 +35,12 @@ dev:
             delivery-strategy: embedded_scheduled
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 60
+          deployment:
+            deploy-only-on-change: false
 ```
+
+## Deployment
+
+| Key                            | Value             | Description                                                                                                                                                                |
+|--------------------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `deployment.deploy-only-on-change` | `true` or `false` | If `true`, a new deployment is only created when at least one resource actually changed; unchanged BPMN/DMN resources are not redeployed as new versions. Defaults to `false`. |

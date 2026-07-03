@@ -18,7 +18,8 @@ private val logger = KotlinLogging.logger {}
  */
 class DeploymentApiImpl(
   private val repositoryService: RepositoryService,
-  private val commandExecutor: EngineCommandExecutor
+  private val commandExecutor: EngineCommandExecutor,
+  private val deployOnlyOnChange: Boolean = false
 ) : DeploymentApi {
 
   override fun deploy(cmd: DeployBundleCommand): CompletableFuture<DeploymentInformation> {
@@ -29,6 +30,9 @@ class DeploymentApiImpl(
         .createDeployment()
         .apply {
           cmd.resources.forEach { resource -> this.addInputStream(resource.name, resource.resourceStream) }
+          if (deployOnlyOnChange) {
+            this.enableDuplicateFiltering(true)
+          }
         }
         .apply {
           if (!cmd.tenantId.isNullOrBlank()) {

@@ -53,5 +53,16 @@ class Cib7EmbeddedSpringStartProcessApiITest(
 
     THEN
       .`we should have a running process`()
+      .`we should have an active token in element`("service-do-action2")
+  }
+
+  @Test
+  fun `should start process at element by message`() {
+    WHEN
+      .`start process by message at element`(START_MESSAGE, "service-do-action2")
+
+    THEN
+      .`we should have a running process`()
+      .`we should have an active token in element`("service-do-action2")
   }
 }

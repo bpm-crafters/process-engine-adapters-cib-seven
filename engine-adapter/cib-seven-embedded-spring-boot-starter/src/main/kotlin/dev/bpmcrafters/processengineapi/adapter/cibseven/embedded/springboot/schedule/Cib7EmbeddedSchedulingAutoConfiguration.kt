@@ -2,12 +2,13 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.sc
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.*
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.Cib7EmbeddedAdapterEnabledCondition
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnUserTaskDeliveryStrategy
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnServiceTaskDeliveryStrategy
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterAutoConfiguration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterProperties.ExternalServiceTaskDeliveryStrategy.EMBEDDED_SCHEDULED
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterProperties.UserTaskDeliveryStrategy
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.Cib7EmbeddedAdapterEnabledCondition
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnServiceTaskDeliveryStrategy
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnUserTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
@@ -20,9 +21,9 @@ import org.cibseven.bpm.engine.TaskService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnThreading
-import org.springframework.boot.autoconfigure.thread.Threading
 import org.springframework.boot.task.SimpleAsyncTaskSchedulerBuilder
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder
+import org.springframework.boot.thread.Threading
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
@@ -55,7 +56,7 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
   fun taskScheduler(): TaskScheduler {
     val threadPoolTaskScheduler = ThreadPoolTaskScheduler()
     threadPoolTaskScheduler.poolSize = 2 // we have two schedulers, one for user tasks one for service tasks
-    threadPoolTaskScheduler.threadNamePrefix = "CIB-SEVEN-EMBEDDED-SCHEDULER-"
+    threadPoolTaskScheduler.setThreadNamePrefix("CIB-SEVEN-EMBEDDED-SCHEDULER-")
     return threadPoolTaskScheduler
   }
 
@@ -97,7 +98,10 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
 
   @Bean("cib-seven-embedded-process-definition-meta-data-resolver")
   @Qualifier("cib-seven-embedded-process-definition-meta-data-resolver")
-  @ConditionalOnMissingQualifiedBean(beanClass = ProcessDefinitionMetaDataResolver::class, qualifier = "cib-seven-embedded-process-definition-meta-data-resolver")
+  @ConditionalOnMissingQualifiedBean(
+    beanClass = ProcessDefinitionMetaDataResolver::class,
+    qualifier = "cib-seven-embedded-process-definition-meta-data-resolver"
+  )
   fun cachingProcessDefinitionMetaDataResolver(repositoryService: RepositoryService): ProcessDefinitionMetaDataResolver {
     return CachingProcessDefinitionMetaDataResolver(repositoryService = repositoryService)
   }

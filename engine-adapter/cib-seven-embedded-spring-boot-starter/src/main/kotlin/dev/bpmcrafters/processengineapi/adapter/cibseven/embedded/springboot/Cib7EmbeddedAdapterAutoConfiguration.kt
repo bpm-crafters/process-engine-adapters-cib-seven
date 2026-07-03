@@ -96,10 +96,12 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   @Qualifier("cib7embedded-deployment-api")
   fun deploymentApi(
     repositoryService: RepositoryService,
-    commandExecutor: EngineCommandExecutor
+    commandExecutor: EngineCommandExecutor,
+    properties: Cib7EmbeddedAdapterProperties
   ): DeploymentApi = DeploymentApiImpl(
     repositoryService = repositoryService,
-    commandExecutor = commandExecutor
+    commandExecutor = commandExecutor,
+    deployOnlyOnChange = properties.deployment.deployOnlyOnChange
   )
 
   @Bean("cib7embedded-user-task-modification-api")

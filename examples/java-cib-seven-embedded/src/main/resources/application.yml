@@ -28,17 +28,22 @@ dev:
             delivery-strategy: embedded_scheduled
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 10
+
+# DO NOT reuse this example secret in production.
+cibseven:
+  webclient:
+    authentication:
+      jwtSecret: "al/gEH0veB+E9mAezx1L10291Ao2uJIJVNaWP4pIe2GfsUgMs15KLWiHONt7Y3vQfXVkv9kK5APdpMmzcq9+eIV61RyQZ/Q+1RdpL6XkQXH6cSlY4CrqrSd72R0I8tcF0nPQSnl7SHCGxiCfCNJr8h+dn7NYfIBgXPu9F3cw"
+
 camunda:
   bpm:
     webapp:
       index-redirect-enabled: false
     admin-user:
       id: admin
+      password: admin
     filter:
       create: All
-    login:
-      enabled: true
-      user-id: admin
     auto-deployment-enabled: false
     default-serialization-format: application/json
 

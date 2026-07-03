@@ -1,11 +1,13 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.modification
 
 import dev.bpmcrafters.processengineapi.task.ChangeAssignmentModifyTaskCmd
+import dev.bpmcrafters.processengineapi.task.ChangeDatesModifyTaskCmd
 import dev.bpmcrafters.processengineapi.task.ChangePayloadModifyTaskCmd
 import dev.bpmcrafters.processengineapi.task.TaskModification
 import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
 import org.cibseven.bpm.engine.TaskService
 import org.cibseven.bpm.engine.impl.persistence.entity.IdentityLinkEntity
+import org.cibseven.bpm.engine.task.Task
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -14,6 +16,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
+import java.time.OffsetDateTime
 import java.util.*
 
 internal class Cib7UserTaskModificationApiImplTest {
@@ -242,6 +245,67 @@ internal class Cib7UserTaskModificationApiImplTest {
       ChangePayloadModifyTaskCmd.UpdatePayloadTaskCmd(taskId = taskId, payload = mapOf("key1" to "world"))
     ).get()
     verify(taskService).setVariablesLocal(taskId, mapOf("key1" to "world"))
+    verifyNoMoreInteractions(taskService)
+  }
+
+  private fun mockTaskQueryReturning(task: Task) {
+    val taskQuery = mock<org.cibseven.bpm.engine.task.TaskQuery>()
+    whenever(taskService.createTaskQuery()).thenReturn(taskQuery)
+    whenever(taskQuery.taskId(taskId)).thenReturn(taskQuery)
+    whenever(taskQuery.singleResult()).thenReturn(task)
+  }
+
+  @Test
+  fun `set due date`() {
+    val task: Task = mock()
+    mockTaskQueryReturning(task)
+    val dueDate = OffsetDateTime.now().plusDays(7)
+    api.update(
+      ChangeDatesModifyTaskCmd.SetDueDateTaskCmd(taskId = taskId, dueDate = dueDate)
+    ).get()
+    verify(taskService).createTaskQuery()
+    verify(task).dueDate = Date.from(dueDate.toInstant())
+    verify(taskService).saveTask(task)
+    verifyNoMoreInteractions(taskService)
+  }
+
+  @Test
+  fun `clear due date`() {
+    val task: Task = mock()
+    mockTaskQueryReturning(task)
+    api.update(
+      ChangeDatesModifyTaskCmd.ClearDueDateTaskCmd(taskId = taskId)
+    ).get()
+    verify(taskService).createTaskQuery()
+    verify(task).dueDate = null
+    verify(taskService).saveTask(task)
+    verifyNoMoreInteractions(taskService)
+  }
+
+  @Test
+  fun `set follow-up date`() {
+    val task: Task = mock()
+    mockTaskQueryReturning(task)
+    val followUpDate = OffsetDateTime.now().plusDays(3)
+    api.update(
+      ChangeDatesModifyTaskCmd.SetFollowUpDateTaskCmd(taskId = taskId, followUpDate = followUpDate)
+    ).get()
+    verify(taskService).createTaskQuery()
+    verify(task).followUpDate = Date.from(followUpDate.toInstant())
+    verify(taskService).saveTask(task)
+    verifyNoMoreInteractions(taskService)
+  }
+
+  @Test
+  fun `clear follow-up date`() {
+    val task: Task = mock()
+    mockTaskQueryReturning(task)
+    api.update(
+      ChangeDatesModifyTaskCmd.ClearFollowUpDateTaskCmd(taskId = taskId)
+    ).get()
+    verify(taskService).createTaskQuery()
+    verify(task).followUpDate = null
+    verify(taskService).saveTask(task)
     verifyNoMoreInteractions(taskService)
   }
 
