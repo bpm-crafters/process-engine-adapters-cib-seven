@@ -1,0 +1,73 @@
+name: Sync Camunda 7 Issues
+
+# The CIB Seven adapter is largely based on the Camunda 7 adapter, so bugs and
+# enhancements reported there often apply here as well. Issues are maintained
+# primarily on the Camunda 7 repo, so this workflow periodically mirrors the
+# relevant open issues into this repo for triage. Both repos are public, so the
+# built-in GITHUB_TOKEN can read the source and create issues here — no PAT needed.
+
+on:
+  schedule:
+    - cron: '11 6 * * *'      # daily 06:11 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+env:
+  SOURCE_REPO: bpm-crafters/process-engine-adapters-camunda-7
+  SYNC_LABELS: '["Type: bug","Type: enhancement"]'   # OR-matched
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror relevant open Camunda 7 issues into this repo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Ensure the marker label exists (idempotent)
+          gh label create "Source: c7" --repo "$TARGET_REPO" \
+            --color "0e8a16" --description "Mirrored from the Camunda 7 adapter" --force || true
+
+          # Titles already present in this repo — used for deduplication
+          existing=$(gh issue list --repo "$TARGET_REPO" --state all --limit 500 --json title \
+                     | jq -r '.[].title')
+
+          # Open source issues carrying any of the relevant labels (one compact JSON object per line)
+          gh issue list --repo "$SOURCE_REPO" --state open --limit 200 \
+            --json number,title,body,labels,url \
+          | jq -c --argjson want "$SYNC_LABELS" '
+              .[] | select([.labels[].name] as $has | any($want[]; . as $w | $has | index($w)))' \
+          | while IFS= read -r row; do
+              num=$(jq -r '.number' <<<"$row")
+              title=$(jq -r '.title' <<<"$row")
+              body=$(jq -r '.body // ""' <<<"$row")
+              url=$(jq -r '.url' <<<"$row")
+
+              # Dedup by the stable "[c7#<num>]" title prefix.
+              # The closing bracket in the pattern prevents 12 from matching 123.
+              if grep -qF "[c7#$num]" <<<"$existing"; then
+                echo "skip c7#$num (already mirrored)"
+                continue
+              fi
+
+              # Carry over only the source "Type:" labels that also exist here
+              label_args=()
+              while IFS= read -r l; do
+                [ -n "$l" ] && label_args+=(--label "$l")
+              done < <(jq -r --argjson want "$SYNC_LABELS" \
+                         '.labels[].name | select(. as $n | $want | index($n))' <<<"$row")
+
+              new_body=$(printf '> Synced from %s\n\n%s\n\n<!-- synced-from: c7#%s -->' \
+                         "$url" "$body" "$num")
+
+              gh issue create --repo "$TARGET_REPO" \
+                --title "[c7#$num] $title" \
+                --body "$new_body" \
+                --label "Source: c7" "${label_args[@]}" </dev/null
+              echo "created mirror for c7#$num"
+            done
