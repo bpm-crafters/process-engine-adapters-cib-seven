@@ -1,0 +1,3 @@
+# Default owner — requested as reviewer on every PR, including Dependabot's.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+* @emaarco
