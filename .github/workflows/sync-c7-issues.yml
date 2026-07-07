@@ -1,10 +1,10 @@
 name: Sync Camunda 7 Issues
 
-# The CIB Seven adapter is largely based on the Camunda 7 adapter, so bugs and
-# enhancements reported there often apply here as well. Issues are maintained
-# primarily on the Camunda 7 repo, so this workflow periodically mirrors the
-# relevant open issues into this repo for triage. Both repos are public, so the
-# built-in GITHUB_TOKEN can read the source and create issues here — no PAT needed.
+# The CIB Seven adapter is largely based on the Camunda 7 adapter, so issues
+# reported there often apply here as well. Issues are maintained primarily on
+# the Camunda 7 repo, so this workflow periodically mirrors all open issues into
+# this repo for triage. Both repos are public, so the built-in GITHUB_TOKEN can
+# read the source and create issues here — no PAT needed.
 
 on:
   schedule:
@@ -16,13 +16,12 @@ permissions:
 
 env:
   SOURCE_REPO: bpm-crafters/process-engine-adapters-camunda-7
-  SYNC_LABELS: '["Type: bug","Type: enhancement"]'   # OR-matched
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Mirror relevant open Camunda 7 issues into this repo
+      - name: Mirror open Camunda 7 issues into this repo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_REPO: ${{ github.repository }}
@@ -33,15 +32,18 @@ jobs:
           gh label create "Source: c7" --repo "$TARGET_REPO" \
             --color "0e8a16" --description "Mirrored from the Camunda 7 adapter" --force || true
 
+          # Labels that exist in this repo — only these are carried over from the source
+          target_labels=$(gh label list --repo "$TARGET_REPO" --limit 200 --json name \
+                          | jq -r '.[].name')
+
           # Titles already present in this repo — used for deduplication
           existing=$(gh issue list --repo "$TARGET_REPO" --state all --limit 500 --json title \
                      | jq -r '.[].title')
 
-          # Open source issues carrying any of the relevant labels (one compact JSON object per line)
+          # All open source issues (gh issue list already excludes pull requests)
           gh issue list --repo "$SOURCE_REPO" --state open --limit 200 \
             --json number,title,body,labels,url \
-          | jq -c --argjson want "$SYNC_LABELS" '
-              .[] | select([.labels[].name] as $has | any($want[]; . as $w | $has | index($w)))' \
+          | jq -c '.[]' \
           | while IFS= read -r row; do
               num=$(jq -r '.number' <<<"$row")
               title=$(jq -r '.title' <<<"$row")
@@ -55,12 +57,13 @@ jobs:
                 continue
               fi
 
-              # Carry over only the source "Type:" labels that also exist here
-              label_args=()
+              # Always tag the mirror, plus carry over each source label that also exists here
+              label_args=(--label "Source: c7")
               while IFS= read -r l; do
-                [ -n "$l" ] && label_args+=(--label "$l")
-              done < <(jq -r --argjson want "$SYNC_LABELS" \
-                         '.labels[].name | select(. as $n | $want | index($n))' <<<"$row")
+                if [ -n "$l" ] && grep -qxF "$l" <<<"$target_labels"; then
+                  label_args+=(--label "$l")
+                fi
+              done < <(jq -r '.labels[].name' <<<"$row")
 
               new_body=$(printf '> Synced from %s\n\n%s\n\n<!-- synced-from: c7#%s -->' \
                          "$url" "$body" "$num")
@@ -68,6 +71,6 @@ jobs:
               gh issue create --repo "$TARGET_REPO" \
                 --title "[c7#$num] $title" \
                 --body "$new_body" \
-                --label "Source: c7" "${label_args[@]}" </dev/null
+                "${label_args[@]}" </dev/null
               echo "created mirror for c7#$num"
             done
