@@ -22,10 +22,7 @@
     <spring-boot.version>4.0.7</spring-boot.version>
     <process-engine-api.version>1.7</process-engine-api.version>
     <cibseven.version>2.2.0</cibseven.version>
-    <!-- Pinned to 7.x: kotlin-logging 8.0 removed the SLF4J-style KLogger.info(String) overloads,
-         which the cibseven-process-test-coverage 2.1.0 test dependency (latest) still calls,
-         causing NoSuchMethodError at test runtime. Bump once that library supports kotlin-logging 8. -->
-    <kotlin-logging.version>7.0.13</kotlin-logging.version>
+    <kotlin-logging.version>8.0.4</kotlin-logging.version>
     <!-- TEST -->
     <mockito.version>6.3.0</mockito.version>
     <assertj.version>3.27.7</assertj.version>
