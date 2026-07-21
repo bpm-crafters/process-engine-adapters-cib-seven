@@ -1,5 +1,6 @@
 version: 2
 updates:
+  # maven: minor + patch grouped, every major lands as its own PR
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
@@ -7,9 +8,39 @@ updates:
     open-pull-requests-limit: 19
     labels:
       - "Type: dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 5
+      semver-patch-days: 3
+    groups:
+      maven-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      maven-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # github-actions: everything grouped into a single PR
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     labels:
       - "Type: dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    cooldown:
+      default-days: 5
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns: ["*"]
+      github-actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
