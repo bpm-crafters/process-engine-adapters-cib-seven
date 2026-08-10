@@ -12,18 +12,6 @@
   <artifactId>process-engine-api-example-java-cib-seven-embedded</artifactId>
   <name>Example: Java CIB-seven Embedded</name>
 
-  <!-- TEMPORARY: resolves cibseven-process-test-coverage 2.2.0-SNAPSHOT, which is aligned with
-       kotlin-logging 8. Drop this repository and switch to the 2.2.0 release once it is published
-       to Maven Central (see cibseven-community-hub/cibseven-process-test-coverage#13). -->
-  <repositories>
-    <repository>
-      <id>cibseven-community-snapshots</id>
-      <url>https://artifacts.cibseven.org/repository/community-snapshots/</url>
-      <releases><enabled>false</enabled></releases>
-      <snapshots><enabled>true</enabled></snapshots>
-    </repository>
-  </repositories>
-
   <dependencyManagement>
     <dependencies>
       <!-- https://central.sonatype.com/artifact/org.cibseven.bpm/cibseven-bom -->
@@ -79,8 +67,7 @@
     <dependency>
       <groupId>org.cibseven.community.process_test_coverage</groupId>
       <artifactId>cibseven-process-test-coverage-junit5-platform-7</artifactId>
-      <!-- SNAPSHOT until 2.2.0 is released; aligned with kotlin-logging 8 (see snapshot repo above). -->
-      <version>2.2.0-SNAPSHOT</version>
+      <version>2.2.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
