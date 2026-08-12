@@ -1,0 +1,225 @@
+package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull
+
+import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.*
+import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
+import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
+import dev.bpmcrafters.processengineapi.task.TaskInformation
+import dev.bpmcrafters.processengineapi.task.TaskType
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.cibseven.community.rest.client.api.TaskApiClient
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
+import org.cibseven.community.rest.client.api.TaskVariableApiClient
+import org.cibseven.community.rest.client.model.IdentityLinkDto
+import org.cibseven.community.rest.client.model.TaskQueryDto
+import org.cibseven.community.rest.client.model.TaskWithAttachmentAndCommentDto
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorService
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * Delivers user tasks to subscriptions.
+ * Uses internal Java API for pulling tasks.
+ */
+class PullUserTaskDelivery(
+  private val taskApiClient: TaskApiClient,
+  private val taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
+  private val taskVariableApiClient: TaskVariableApiClient,
+  private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
+  private val subscriptionRepository: SubscriptionRepository,
+  private val executorService: ExecutorService,
+  private val valueMapper: ValueMapper,
+  private val deserializeOnServer: Boolean
+) : UserTaskDelivery, RefreshableDelivery {
+
+  private val deliveredTasks: ConcurrentHashMap<String, TaskInformation> = ConcurrentHashMap()
+  private val refreshLock = Any()
+
+  /**
+   * Delivers all tasks found in user task service to corresponding subscriptions.
+   */
+  override fun refresh() {
+    synchronized(refreshLock) {
+      val subscriptions = subscriptionRepository.getTaskSubscriptions().filter { s -> s.taskType == TaskType.USER }
+      if (subscriptions.isNotEmpty()) {
+        val deliveredTaskIds = subscriptionRepository.getDeliveredTaskIds(TaskType.USER).toMutableList()
+        // clean up task information items which are not in the list of delivered task ids. This is because,
+        // if a task has been completed via API and the list of delivered tasks is reduced, the `deliveredTasks`
+        // variable has not been updated yet.
+        synchronized(deliveredTasks) {
+          (deliveredTasks.keys().asSequence().filterNot { deliveredTaskIds.contains(it) }).forEach(deliveredTasks::remove)
+        }
+
+        logger.trace { "PROCESS-ENGINE-C7-REMOTE-036: pulling user tasks for subscriptions: $subscriptions" }
+        val result = taskApiClient
+          .queryTasks(0, Integer.MAX_VALUE, TaskQueryDto().forSubscriptions(subscriptions))
+
+        val taskDtoList = result
+
+        taskDtoList
+          .asSequence()
+          .mapNotNull { task ->
+            subscriptions
+              .firstOrNull { subscription -> subscription.matches(task) }
+              ?.let { activeSubscription ->
+                executorService.submit {  // in another thread
+                  try {
+                    val candidates =
+                      taskIdentityLinkApiClient.getIdentityLinks(task.id, null).toSet()
+
+                    // create task information and set up the reason
+                    val taskInformation =
+                      if (deliveredTaskIds.contains(task.id!!)
+                        && subscriptionRepository.getActiveSubscriptionForTask(task.id!!) == activeSubscription
+                      ) {
+                        // task was already delivered to this subscription
+                        if (task.hasChanged()) {
+                          if (task.hasChangedAssignees(candidates)) {
+                            task.toTaskInformation(candidates, processDefinitionMetaDataResolver).withReason(TaskInformation.ASSIGN)
+                          } else {
+                            task.toTaskInformation(candidates, processDefinitionMetaDataResolver).withReason(TaskInformation.UPDATE)
+                          }
+                        } else {
+                          // no change on the task
+                          null
+                        }
+                      } else {
+                        // task is new for this subscription
+                        task.toTaskInformation(candidates, processDefinitionMetaDataResolver).withReason(TaskInformation.CREATE)
+                      }
+                    if (taskInformation != null) {
+                      subscriptionRepository.activateSubscriptionForTask(task.id!!, activeSubscription)
+                      synchronized(deliveredTasks) {
+                        deliveredTasks[task.id!!] = taskInformation
+                      }
+                      val variables =
+                        taskVariableApiClient.getTaskVariables(task.id, deserializeOnServer)
+                          .filterBySubscription(activeSubscription)
+                          .let { dtoList -> valueMapper.mapDtos(variables = dtoList, deserializeValues = true) }
+                      logger.debug { "PROCESS-ENGINE-C7-REMOTE-037: delivering user task ${task.id}." }
+                      activeSubscription.action.accept(taskInformation, variables)
+                    } else {
+                      logger.trace { "PROCESS-ENGINE-C7-REMOTE-040: skipping task ${task.id} since it is unchanged." }
+                    }
+                  } catch (e: Exception) {
+                    logger.error(e) { "PROCESS-ENGINE-C7-REMOTE-038: error delivering task ${task.id}: ${e.message}" }
+                    cleanupFailedDelivery(task.id!!, deliveredTasks, subscriptionRepository)
+                  } finally {
+                    // The task still exists in the engine because it was returned by the query.
+                    // Remove it from the stale snapshot even if processing failed.
+                    synchronized(deliveredTaskIds) {
+                      if (deliveredTaskIds.contains(task.id!!)) { // if the task was already there, remove it from unprocessed list
+                        val successful = deliveredTaskIds.remove(task.id!!)
+                        if (!successful) {
+                          logger.error { "PROCESS-ENGINE-C7-REMOTE-038: error processing task ${task.id}, could not mark updated task as processed." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          }.forEach { taskExecutionFuture ->
+            taskExecutionFuture.get()
+          }
+
+        // now we removed all still existing task ids from the list of already delivered
+        // the remaining tasks doesn't exist in the engine, lets handle them
+        deliveredTaskIds.parallelStream().map { taskId ->
+          executorService.submit {
+            // deactivate active subscription and handle termination
+            subscriptionRepository.deactivateSubscriptionForTask(taskId)?.termination?.accept(
+              TaskInformation(
+                taskId = taskId,
+                meta = emptyMap()
+              ).withReason(TaskInformation.DELETE)
+            )
+            // deactivate active subscription and handle termination
+            logger.trace { "PROCESS-ENGINE-C7-REMOTE-042: deactivating $taskId, task is gone." }
+            synchronized(deliveredTasks) {
+              deliveredTasks.remove(taskId)
+            }
+          }
+        }.forEach { taskTerminationFuture -> taskTerminationFuture.get() }
+      } else {
+        logger.trace { "PROCESS-ENGINE-C7-REMOTE-039: pull user tasks disabled because of no active subscriptions" }
+      }
+    }
+  }
+
+  private fun cleanupFailedDelivery(
+    taskId: String,
+    deliveredTasks: ConcurrentHashMap<String, TaskInformation>,
+    subscriptionRepository: SubscriptionRepository,
+  ) {
+    val activeSubscription = subscriptionRepository.deactivateSubscriptionForTask(taskId = taskId)
+    synchronized(deliveredTasks) {
+      deliveredTasks.remove(taskId)
+    }
+    if (activeSubscription != null) {
+      try {
+        activeSubscription.termination.accept(
+          TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
+        )
+      } catch (terminationError: Exception) {
+        logger.error(terminationError) { "PROCESS-ENGINE-C7-REMOTE-045: error cleaning up failed delivery for task $taskId: ${terminationError.message}" }
+      }
+    }
+  }
+
+  @Suppress("UNUSED_PARAMETER")
+  private fun TaskQueryDto.forSubscriptions(subscriptions: List<TaskSubscriptionHandle>): TaskQueryDto {
+    return this.apply {
+      this.active = true
+    }
+    // TODO -> consider complex tenant filtering
+  }
+
+  /**
+   * Checks if a task has changed.
+   */
+  private fun TaskWithAttachmentAndCommentDto.hasChanged(): Boolean {
+    val taskInformation = deliveredTasks[this.id!!]
+    return !(
+      taskInformation != null
+        && taskInformation.meta["lastUpdatedDate"] == this.lastUpdated.toDateString()
+        && taskInformation.meta["creationDate"] == this.created.toDateString()
+      )
+  }
+
+  /**
+   * Checks if a task assignees, candidate users and candidate users have changed.
+   */
+  private fun TaskWithAttachmentAndCommentDto.hasChangedAssignees(candidates: Set<IdentityLinkDto>): Boolean {
+    val taskInformation = deliveredTasks[this.id!!]
+    return !(taskInformation != null
+      && taskInformation.meta["assignee"] == this.assignee
+      && taskInformation.meta["candidateUsers"] == candidates.toUsersString()
+      && taskInformation.meta["candidateGroups"] == candidates.toGroupsString()
+      )
+  }
+
+
+  internal fun TaskSubscriptionHandle.matches(task: TaskWithAttachmentAndCommentDto): Boolean =
+    (this.taskDescriptionKey == null
+      || this.taskDescriptionKey == task.taskDefinitionKey
+      || this.taskDescriptionKey == task.id)
+      && this.restrictions
+      .all {
+        when (it.key) {
+          CommonRestrictions.EXECUTION_ID -> it.value == task.executionId
+          CommonRestrictions.TENANT_ID -> it.value == task.tenantId
+          CommonRestrictions.ACTIVITY_ID -> it.value == task.taskDefinitionKey
+          CommonRestrictions.PROCESS_INSTANCE_ID -> it.value == task.processInstanceId
+          CommonRestrictions.PROCESS_DEFINITION_ID -> it.value == task.processDefinitionId
+          CommonRestrictions.PROCESS_DEFINITION_KEY -> it.value == processDefinitionMetaDataResolver.getProcessDefinitionKey(task.processDefinitionId)
+          CommonRestrictions.PROCESS_DEFINITION_VERSION_TAG -> it.value == processDefinitionMetaDataResolver.getProcessDefinitionVersionTag(task.processDefinitionId)
+          else -> {
+            logger.debug { "PROCESS-ENGINE-C7-REMOTE-044: Unknown restriction key: ${it.key}" }
+            false
+          }
+        }
+      }
+}

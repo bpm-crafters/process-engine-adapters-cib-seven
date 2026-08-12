@@ -1,0 +1,46 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: Java CIB Seven Platform Remote
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: true
+
+dev:
+  bpm-crafters:
+    process-api:
+      adapter:
+        cib-seven-remote:
+          enabled: true
+          client:
+            # Point this at your standalone CIB seven engine's REST API.
+            base-url: http://localhost:8080/engine-rest
+            # username: demo
+            # password: demo
+          service-tasks:
+            delivery-strategy: remote_scheduled
+            worker-id: remote-worker
+            lock-time-in-seconds: 10
+            execute-initial-pull-on-startup: true
+            schedule-delivery-fixed-rate-in-seconds: 10
+            retries: 3
+            max-task-count: 100
+            retry-timeout-in-seconds: 30
+          user-tasks:
+            delivery-strategy: remote_scheduled
+            execute-initial-pull-on-startup: true
+            schedule-delivery-fixed-rate-in-seconds: 10
+
+# External task client (only used with the remote_subscribed service-task strategy)
+cibseven:
+  bpm:
+    client:
+      base-url: http://localhost:8080/engine-rest
+
+logging:
+  level:
+    dev.bpmcrafters.processengineapi: DEBUG
+    dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot: TRACE

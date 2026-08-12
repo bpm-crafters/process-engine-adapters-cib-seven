@@ -36,6 +36,8 @@
     <module>engine-adapter/adapter-testing</module>
     <module>engine-adapter/cib-seven-embedded-core</module>
     <module>engine-adapter/cib-seven-embedded-spring-boot-starter</module>
+    <module>engine-adapter/cib-seven-remote-core</module>
+    <module>engine-adapter/cib-seven-remote-spring-boot-starter</module>
     <module>bom</module>
   </modules>
 

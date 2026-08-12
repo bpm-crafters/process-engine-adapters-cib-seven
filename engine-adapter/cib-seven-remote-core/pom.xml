@@ -1,0 +1,186 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+    <artifactId>process-engine-adapter-cib-seven-root</artifactId>
+    <version>2026.07.2-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>process-engine-adapter-cib-seven-remote-core</artifactId>
+  <name>Adapter: CIB7 Remote Core</name>
+  <description>
+    CIB seven Remote Adapter core. Talks to a standalone CIB seven engine over its REST API.
+    The REST client is generated at build time from CIB seven's official OpenAPI document
+    (bundled in org.cibseven.bpm:cibseven-engine-rest-openapi), so client and engine never drift.
+  </description>
+
+  <properties>
+    <jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
+    <jsr305.version>3.0.2</jsr305.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- https://central.sonatype.com/artifact/org.cibseven.bpm/cibseven-bom -->
+      <dependency>
+        <groupId>org.cibseven.bpm</groupId>
+        <artifactId>cibseven-bom</artifactId>
+        <version>${cibseven.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api</groupId>
+      <artifactId>process-engine-api</artifactId>
+      <version>${process-engine-api.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api</groupId>
+      <artifactId>process-engine-api-impl</artifactId>
+      <version>${process-engine-api.version}</version>
+    </dependency>
+
+    <!-- Subscription-based service task delivery using the official CIB seven external task client -->
+    <dependency>
+      <groupId>org.cibseven.bpm</groupId>
+      <artifactId>cibseven-external-task-client</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Typed-value API (VariableMap, TypedValue, ValueType, …) used by the ported value mapper -->
+    <dependency>
+      <groupId>org.cibseven.commons</groupId>
+      <artifactId>cibseven-commons-typed-values</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Spin: (de)serialization of typed process variables (JSON/XML/object) over REST -->
+    <dependency>
+      <groupId>org.cibseven.bpm</groupId>
+      <artifactId>cibseven-engine-plugin-spin</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Dependencies of the generated (apache-httpclient) REST client -->
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <version>${jsr305.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.jaxrs</groupId>
+      <artifactId>jackson-jaxrs-json-provider</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+      <version>${jackson-databind-nullable.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+
+    <!-- For JGiven Testing Stage as a part of compiled code (mirrors embedded-core) -->
+    <dependency>
+      <groupId>com.tngtech.jgiven</groupId>
+      <artifactId>jgiven-core</artifactId>
+      <version>${jgiven.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility-kotlin</artifactId>
+      <version>${awaitility.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+      <artifactId>process-engine-adapter-cib-seven-testing</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <dependencies>
+          <!-- Carries the official CIB seven engine OpenAPI document (bundled /openapi.json),
+               pinned to the engine version so the generated client never drifts from the engine. -->
+          <dependency>
+            <groupId>org.cibseven.bpm</groupId>
+            <artifactId>cibseven-engine-rest-openapi</artifactId>
+            <version>${cibseven.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>generate-cib-seven-rest-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>/openapi.json</inputSpec>
+              <generatorName>java</generatorName>
+              <!-- Align generated API type names with the upstream C7 remote adapter (…ApiClient). -->
+              <apiNameSuffix>ApiClient</apiNameSuffix>
+              <configOptions>
+                <packageName>org.cibseven.community.rest.client</packageName>
+                <apiPackage>org.cibseven.community.rest.client.api</apiPackage>
+                <invokerPackage>org.cibseven.community.rest.client.invoker</invokerPackage>
+                <modelPackage>org.cibseven.community.rest.client.model</modelPackage>
+                <library>apache-httpclient</library>
+                <dateLibrary>java8</dateLibrary>
+                <useJakartaEe>true</useJakartaEe>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
