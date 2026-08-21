@@ -1,0 +1,145 @@
+package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.subscribe
+
+import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.ServiceTaskDelivery
+import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
+import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
+import dev.bpmcrafters.processengineapi.impl.task.filterBySubscription
+import dev.bpmcrafters.processengineapi.task.TaskInformation
+import dev.bpmcrafters.processengineapi.task.TaskType
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.cibseven.bpm.client.ExternalTaskClient
+import org.cibseven.bpm.client.task.ExternalTask
+import org.cibseven.bpm.client.topic.TopicSubscription
+import org.cibseven.bpm.client.topic.TopicSubscriptionBuilder
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * Implementation of task delivery based on Camunda External Task Client.
+ */
+class SubscribingServiceTaskDelivery(
+  private val externalTaskClient: ExternalTaskClient,
+  private val subscriptionRepository: SubscriptionRepository,
+  private val lockDurationInSeconds: Long,
+  private val retryTimeoutInSeconds: Long,
+  private val retries: Int,
+) : ServiceTaskDelivery {
+
+  private val camundaTaskListTopicSubscriptions = mutableListOf<TopicSubscription>()
+
+  fun subscribe() {
+
+    val subscriptions = subscriptionRepository.getTaskSubscriptions().filter { s -> s.taskType == TaskType.EXTERNAL }
+    if (subscriptions.isNotEmpty()) {
+      logger.trace { "PROCESS-ENGINE-C7-REMOTE-030: subscribing to external tasks for: $subscriptions" }
+
+      subscriptions
+        .forEach { subscription ->
+          // this is a job to subscribe to.
+          camundaTaskListTopicSubscriptions.add(
+            externalTaskClient
+              .subscribe(subscription.taskDescriptionKey)
+              .lockDuration(lockDurationInSeconds * 1000) // millis
+              .handler { externalTask, externalTaskService ->
+                if (subscription.matches(externalTask)) {
+                  try {
+                    subscriptionRepository.activateSubscriptionForTask(externalTask.id, subscription)
+                    val variables = externalTask.allVariables.filterBySubscription(subscription)
+                    logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${externalTask.id}." }
+                    subscription.action.accept(externalTask.toTaskInformation().withReason(TaskInformation.CREATE), variables)
+                    logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${externalTask.id}." }
+                  } catch (e: Exception) {
+                    val jobRetries: Int = externalTask.retries?.minus(1) ?: retries
+                    logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${externalTask.id}: ${e.message}" }
+                    externalTaskService.handleFailure(
+                      externalTask.id,
+                      "Error delivering external task",
+                      e.message,
+                      jobRetries,
+                      retryTimeoutInSeconds * 1000 // millis
+                    )
+                    cleanupFailedDelivery(externalTask.id)
+                    logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${externalTask.id}: ${e.message}" }
+                  }
+                } else {
+                  // put it back
+                  externalTaskService.handleFailure(
+                    externalTask.id,
+                    "PROCESS-ENGINE-C7-REMOTE-031: No matching handler",
+                    "",
+                    externalTask.retries, // no changes on retries
+                    retryTimeoutInSeconds * 1000
+                  )
+                }
+              }
+              .forSubscription(subscription)
+              .open()
+          )
+        }
+    } else {
+      logger.trace { "PROCESS-ENGINE-C7-REMOTE-035: external tasks subscribing is disabled because of no active subscriptions" }
+    }
+  }
+
+  /**
+   * Camunda client disallows duplicate subscriptions, allow to unsubscribe.
+   */
+  fun unsubscribe() {
+    camundaTaskListTopicSubscriptions.forEach { topicSubscription ->
+      topicSubscription.close()
+    }
+  }
+
+  /*
+   * Additional restrictions to check.
+   * The activated job can be completed by the Subscription strategy and is correct type (topic).
+   */
+  internal fun TaskSubscriptionHandle.matches(externalTask: ExternalTask): Boolean =
+    (this.taskDescriptionKey == null
+      || this.taskDescriptionKey == externalTask.topicName)
+      && this.restrictions
+      .minus( // ignore some restrictions which are not relevant for external tasks
+        CommonRestrictions.WORKER_LOCK_DURATION_IN_MILLISECONDS
+      ).all {
+        when (it.key) {
+          CommonRestrictions.EXECUTION_ID -> it.value == externalTask.executionId
+          CommonRestrictions.ACTIVITY_ID -> it.value == externalTask.activityId
+          CommonRestrictions.BUSINESS_KEY -> it.value == externalTask.businessKey
+          CommonRestrictions.TENANT_ID -> it.value == externalTask.tenantId
+          CommonRestrictions.PROCESS_INSTANCE_ID -> it.value == externalTask.processInstanceId
+          CommonRestrictions.PROCESS_DEFINITION_KEY -> it.value == externalTask.processDefinitionKey
+          CommonRestrictions.PROCESS_DEFINITION_ID -> it.value == externalTask.processDefinitionId
+          CommonRestrictions.PROCESS_DEFINITION_VERSION_TAG -> it.value == externalTask.processDefinitionVersionTag
+          else -> {
+            logger.debug { "PROCESS-ENGINE-C7-REMOTE-045: Unknown restriction key: ${it.key}" }
+            false
+          }
+        }
+      }
+
+
+  private fun TopicSubscriptionBuilder.forSubscription(subscription: TaskSubscriptionHandle): TopicSubscriptionBuilder {
+    // FIXME -> more limitations....
+    return if (subscription.payloadDescription != null && subscription.payloadDescription!!.isNotEmpty()) {
+      this.variables(*subscription.payloadDescription!!.toTypedArray())
+    } else {
+      this
+    }
+    // FIXME -> consider complex tenant filtering
+  }
+
+  private fun cleanupFailedDelivery(taskId: String) {
+    val taskSubscriptionHandle = subscriptionRepository.deactivateSubscriptionForTask(taskId = taskId)
+    if (taskSubscriptionHandle != null) {
+      try {
+        taskSubscriptionHandle.termination.accept(
+          TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
+        )
+      } catch (terminationError: Exception) {
+        logger.error { "PROCESS-ENGINE-C7-REMOTE-046: failed cleaning up delivery state for task $taskId: ${terminationError.message}" }
+      }
+    }
+  }
+
+}

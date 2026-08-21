@@ -25,6 +25,7 @@
   <modules>
     <module>java-common-fixture</module>
     <module>java-cib-seven-embedded</module>
+    <module>java-cib-seven-remote</module>
   </modules>
 
   <dependencyManagement>
@@ -56,6 +57,11 @@
       <dependency>
         <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
         <artifactId>process-engine-adapter-cib-seven-embedded-spring-boot-starter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+        <artifactId>process-engine-adapter-cib-seven-remote-spring-boot-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
 

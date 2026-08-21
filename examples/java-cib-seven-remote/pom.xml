@@ -1,0 +1,65 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.bpm-crafters.process-engine-examples</groupId>
+    <artifactId>process-engine-api-example-root-cib-seven</artifactId>
+    <version>2026.07.2-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>process-engine-api-example-java-cib-seven-remote</artifactId>
+  <name>Example: Java CIB-seven Remote</name>
+  <description>
+    Worker application connecting to a standalone (remote) CIB seven engine over its REST API.
+    Requires a running CIB seven engine (e.g. `docker run -p 8080:8080 cibseven/cibseven:run-latest`).
+  </description>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- https://central.sonatype.com/artifact/org.cibseven.bpm/cibseven-bom -->
+      <dependency>
+        <groupId>org.cibseven.bpm</groupId>
+        <artifactId>cibseven-bom</artifactId>
+        <version>${cibseven.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-examples</groupId>
+      <artifactId>process-engine-api-example-java-cib-seven-common-fixture</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+      <artifactId>process-engine-adapter-cib-seven-remote-spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- Subscribe delivery strategy uses the official external task client -->
+    <dependency>
+      <groupId>org.cibseven.bpm.springboot</groupId>
+      <artifactId>cibseven-bpm-spring-boot-starter-external-task-client-4</artifactId>
+      <version>${cibseven.version}</version>
+    </dependency>
+    <!-- Spin JSON data format for object-variable (de)serialization -->
+    <dependency>
+      <groupId>org.cibseven.spin</groupId>
+      <artifactId>cibseven-spin-dataformat-json-jackson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>
