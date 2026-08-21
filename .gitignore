@@ -45,5 +45,6 @@ build/
 _tmp/
 .repository/
 .DS_Store
-.claude
+.claude/*
+!.claude/skills/
 .claude/logs/
