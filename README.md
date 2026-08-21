@@ -17,7 +17,7 @@ respective [repository](https://github.com/bpm-crafters/process-engine-api-docs)
 
 | Adapter Version                                                                                        | CIB Seven Version | API Version | Spring Boot |
 |--------------------------------------------------------------------------------------------------------|-------------------|-------------|-------------|
-| next release                                                                                            | 2.2.0             | 1.6         | 4.0         |
+| [2026.08.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.08.1)  | 2.2.0             | 1.7         | 4.0         |
 | [2026.04.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.04.1)  | 2.1.0             | 1.5         | 3.5         |
 | [2026.02.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2026.02.1)  | 2.1.0             | 1.5         | 3.5         |
 | [2025.12.1](https://github.com/bpm-crafters/process-engine-adapters-cib-seven/releases/tag/2025.12.1)  | 2.1.0             | 1.4         | 3.5         |
