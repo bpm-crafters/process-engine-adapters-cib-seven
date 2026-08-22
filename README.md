@@ -37,12 +37,12 @@ If you are still on Spring Boot 3.5, stay on adapter version `2026.04.1`.
 
 ## Anatomy
 
-- `process-engine-adapter-cib-seven-testing`: Test fixtures and utilities for testing CIB Seven adapters
-- `process-engine-adapter-cib-seven-embedded-core`: CIB Seven Embedded Adapter implementation
-- `process-engine-adapter-cib-seven-embedded-spring-boot-starter`: CIB Seven Embedded Adapter Spring Boot Starter
-- `process-engine-adapter-cib-seven-remote-core`: CIB Seven Remote (REST) Adapter implementation
-- `process-engine-adapter-cib-seven-remote-spring-boot-starter`: CIB Seven Remote (REST) Adapter Spring Boot Starter
-- `process-engine-adapter-cib-seven-bom`: Maven BOM containing dependency definitions.
+- [`process-engine-adapter-cib-seven-testing`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-testing): Test fixtures and utilities for testing CIB Seven adapters
+- [`process-engine-adapter-cib-seven-embedded-core`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-embedded-core): CIB Seven Embedded Adapter implementation
+- [`process-engine-adapter-cib-seven-embedded-spring-boot-starter`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-embedded-spring-boot-starter): CIB Seven Embedded Adapter Spring Boot Starter
+- [`process-engine-adapter-cib-seven-remote-core`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-remote-core): CIB Seven Remote (REST) Adapter implementation
+- [`process-engine-adapter-cib-seven-remote-spring-boot-starter`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-remote-spring-boot-starter): CIB Seven Remote (REST) Adapter Spring Boot Starter
+- [`process-engine-adapter-cib-seven-bom`](https://central.sonatype.com/artifact/dev.bpm-crafters.process-engine-adapters/process-engine-adapter-cib-seven-bom): Maven BOM containing dependency definitions.
 
 ## Usage
 
