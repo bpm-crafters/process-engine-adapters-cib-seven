@@ -16,8 +16,8 @@ import dev.bpmcrafters.processengineapi.task.TaskInformation
 import dev.bpmcrafters.processengineapi.task.TaskInformation.Companion.CREATE
 import dev.bpmcrafters.processengineapi.task.TaskType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
-import org.cibseven.community.rest.client.model.*
+import org.cibseven.community.rest.client.api.ExternalTaskApi
+import org.cibseven.community.rest.client.dto.*
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.time.Duration
 import java.time.OffsetDateTime
@@ -32,7 +32,7 @@ private val logger = KotlinLogging.logger {}
  * This implementation uses internal Java API and pulls tasks for delivery.
  */
 class PullServiceTaskDelivery(
-  private val externalTaskApiClient: ExternalTaskApiClient,
+  private val externalTaskApi: ExternalTaskApi,
   private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   private val workerId: String,
   private val subscriptionRepository: SubscriptionRepository,
@@ -78,7 +78,7 @@ class PullServiceTaskDelivery(
     }
 
     logger.trace { "PROCESS-ENGINE-C7-REMOTE-030: pulling $tasksToFetch service tasks for subscriptions: $subscriptions" }
-    val result = externalTaskApiClient
+    val result = externalTaskApi
       .fetchAndLock(
         FetchExternalTasksDto().workerId(workerId).maxTasks(tasksToFetch)
           .forSubscriptions(subscriptions)
@@ -134,7 +134,7 @@ class PullServiceTaskDelivery(
         logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${lockedTask.id}: ${e.message}" }
         metrics.incrementFailedTasksCounter(lockedTask.topicName!!)
         val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
-        externalTaskApiClient.handleFailure(
+        externalTaskApi.handleFailure(
           lockedTask.id,
           ExternalTaskFailureDto().apply {
             workerId = this@PullServiceTaskDelivery.workerId
@@ -159,7 +159,7 @@ class PullServiceTaskDelivery(
   internal fun cleanUpTerminatedTasks() {
     // TODO Implement metrics
     // retrieve external tasks locked for configured worker id
-    val stillLockedTasksResult = externalTaskApiClient.queryExternalTasks(
+    val stillLockedTasksResult = externalTaskApi.queryExternalTasks(
       null,
       null,
       ExternalTaskQueryDto()

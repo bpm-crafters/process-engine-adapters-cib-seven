@@ -4,9 +4,9 @@ import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
 import dev.bpmcrafters.processengineapi.task.TaskInformation
-import org.cibseven.community.rest.client.model.IdentityLinkDto
-import org.cibseven.community.rest.client.model.LockedExternalTaskDto
-import org.cibseven.community.rest.client.model.TaskWithAttachmentAndCommentDto
+import org.cibseven.community.rest.client.dto.IdentityLinkDto
+import org.cibseven.community.rest.client.dto.LockedExternalTaskDto
+import org.cibseven.community.rest.client.dto.TaskWithAttachmentAndCommentDto
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*

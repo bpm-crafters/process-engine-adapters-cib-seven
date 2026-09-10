@@ -4,21 +4,21 @@ import dev.bpmcrafters.processengineapi.Empty
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
-import org.cibseven.community.rest.client.model.CompleteExternalTaskDto
-import org.cibseven.community.rest.client.model.ExternalTaskBpmnError
-import org.cibseven.community.rest.client.model.ExternalTaskFailureDto
+import org.cibseven.community.rest.client.api.ExternalTaskApi
+import org.cibseven.community.rest.client.dto.CompleteExternalTaskDto
+import org.cibseven.community.rest.client.dto.ExternalTaskBpmnError
+import org.cibseven.community.rest.client.dto.ExternalTaskFailureDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 /**
- * Strategy for completing external tasks using Feign REST ExternalTaskApiClient.
+ * Strategy for completing external tasks using Feign REST ExternalTaskApi.
  */
 class FeignServiceTaskCompletionApiImpl(
   private val workerId: String,
-  private val externalTaskApiClient: ExternalTaskApiClient,
+  private val externalTaskApi: ExternalTaskApi,
   private val subscriptionRepository: SubscriptionRepository,
   private val failureRetrySupplier: FailureRetrySupplier,
   private val valueMapper: ValueMapper
@@ -26,7 +26,7 @@ class FeignServiceTaskCompletionApiImpl(
 
   override fun completeTask(cmd: CompleteTaskCmd): CompletableFuture<Empty> {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-006: completing service task ${cmd.taskId}." }
-    externalTaskApiClient.completeExternalTaskResource(
+    externalTaskApi.completeExternalTaskResource(
       cmd.taskId,
       CompleteExternalTaskDto()
         .apply {
@@ -43,7 +43,7 @@ class FeignServiceTaskCompletionApiImpl(
 
   override fun completeTaskByError(cmd: CompleteTaskByErrorCmd): CompletableFuture<Empty> {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-008: throwing error ${cmd.errorCode} in service task ${cmd.taskId}." }
-    externalTaskApiClient.handleExternalTaskBpmnError(
+    externalTaskApi.handleExternalTaskBpmnError(
       cmd.taskId,
       ExternalTaskBpmnError().apply {
         this.workerId = this@FeignServiceTaskCompletionApiImpl.workerId
@@ -63,7 +63,7 @@ class FeignServiceTaskCompletionApiImpl(
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-010: failing service task ${cmd.taskId}." }
     val (retries, retryTimeoutInSeconds) = failureRetrySupplier.apply(cmd.taskId)
     val retryTimeoutInMillis = cmd.retryBackoff?.toMillis() ?: retryTimeoutInSeconds * 1000
-    externalTaskApiClient.handleFailure(
+    externalTaskApi.handleFailure(
       cmd.taskId,
       ExternalTaskFailureDto().apply {
         this.workerId = this@FeignServiceTaskCompletionApiImpl.workerId

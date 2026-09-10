@@ -12,14 +12,13 @@
   <artifactId>process-engine-adapter-cib-seven-remote-core</artifactId>
   <name>Adapter: CIB7 Remote Core</name>
   <description>
-    CIB seven Remote Adapter core. Talks to a standalone CIB seven engine over its REST API.
-    The REST client is generated at build time from CIB seven's official OpenAPI document
-    (bundled in org.cibseven.bpm:cibseven-engine-rest-openapi), so client and engine never drift.
+    CIB seven Remote Adapter core. Talks to a standalone CIB seven engine over its REST API,
+    using the community-maintained REST client
+    (org.cibseven.community.rest-client:cibseven-engine-rest-client-openapi-java).
   </description>
 
   <properties>
-    <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
-    <jsr305.version>3.0.2</jsr305.version>
+    <cibseven-rest-client.version>2.2.0</cibseven-rest-client.version>
   </properties>
 
   <dependencyManagement>
@@ -74,12 +73,15 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Dependencies of the generated (apache-httpclient) REST client -->
+    <!-- Community-maintained CIB seven REST client (replaces the in-house generated client) -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>${jsr305.version}</version>
+      <groupId>org.cibseven.community.rest-client</groupId>
+      <artifactId>cibseven-engine-rest-client-openapi-java</artifactId>
+      <version>${cibseven-rest-client.version}</version>
     </dependency>
+
+    <!-- Directly used by DeploymentApiImpl: multipart request (httpclient5) and the
+         ApiClient's ObjectMapper to read the deployment response (jackson) -->
     <dependency>
       <groupId>org.apache.httpcomponents.client5</groupId>
       <artifactId>httpclient5</artifactId>
@@ -90,25 +92,10 @@
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.jaxrs</groupId>
-      <artifactId>jackson-jaxrs-json-provider</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.openapitools</groupId>
-      <artifactId>jackson-databind-nullable</artifactId>
-      <version>${jackson-databind-nullable.version}</version>
-    </dependency>
+
+    <!-- Directly used by the Spin value serializers (@PostConstruct) -->
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
@@ -141,46 +128,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.openapitools</groupId>
-        <artifactId>openapi-generator-maven-plugin</artifactId>
-        <dependencies>
-          <!-- Carries the official CIB seven engine OpenAPI document (bundled /openapi.json),
-               pinned to the engine version so the generated client never drifts from the engine. -->
-          <dependency>
-            <groupId>org.cibseven.bpm</groupId>
-            <artifactId>cibseven-engine-rest-openapi</artifactId>
-            <version>${cibseven.version}</version>
-          </dependency>
-        </dependencies>
-        <executions>
-          <execution>
-            <id>generate-cib-seven-rest-client</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpec>/openapi.json</inputSpec>
-              <generatorName>java</generatorName>
-              <!-- Align generated API type names with the upstream C7 remote adapter (…ApiClient). -->
-              <apiNameSuffix>ApiClient</apiNameSuffix>
-              <configOptions>
-                <packageName>org.cibseven.community.rest.client</packageName>
-                <apiPackage>org.cibseven.community.rest.client.api</apiPackage>
-                <invokerPackage>org.cibseven.community.rest.client.invoker</invokerPackage>
-                <modelPackage>org.cibseven.community.rest.client.model</modelPackage>
-                <library>apache-httpclient</library>
-                <dateLibrary>java8</dateLibrary>
-                <useJakartaEe>true</useJakartaEe>
-              </configOptions>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>

@@ -16,12 +16,12 @@ import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.toolisticon.spring.condition.ConditionalOnMissingQualifiedBean
 import jakarta.annotation.PostConstruct
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
-import org.cibseven.community.rest.client.api.ProcessDefinitionApiClient
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskLocalVariableApiClient
-import org.cibseven.community.rest.client.api.TaskVariableApiClient
+import org.cibseven.community.rest.client.api.ExternalTaskApi
+import org.cibseven.community.rest.client.api.ProcessDefinitionApi
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskLocalVariableApi
+import org.cibseven.community.rest.client.api.TaskVariableApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -87,7 +87,7 @@ class Cib7RemotePullServicesAutoConfiguration {
     strategy = Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun scheduledServiceTaskDelivery(
-    externalTaskApiClient: ExternalTaskApiClient,
+    externalTaskApi: ExternalTaskApi,
     @Qualifier("cib7remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     subscriptionRepository: SubscriptionRepository,
@@ -104,7 +104,7 @@ class Cib7RemotePullServicesAutoConfiguration {
     retryTimeoutInSeconds = c7AdapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = c7AdapterProperties.serviceTasks.retries,
     executor = executor,
-    externalTaskApiClient = externalTaskApiClient,
+    externalTaskApi = externalTaskApi,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     valueMapper = valueMapper,
     deserializeOnServer = c7AdapterProperties.serviceTasks.deserializeOnServer,
@@ -117,7 +117,7 @@ class Cib7RemotePullServicesAutoConfiguration {
     strategy = Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun scheduledServiceTaskCompletionApi(
-    externalTaskApiClient: ExternalTaskApiClient,
+    externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
     @Qualifier("cib7remote-failure-retry-supplier")
@@ -126,7 +126,7 @@ class Cib7RemotePullServicesAutoConfiguration {
   ): ServiceTaskCompletionApi =
     FeignServiceTaskCompletionApiImpl(
       workerId = c7AdapterProperties.serviceTasks.workerId,
-      externalTaskApiClient = externalTaskApiClient,
+      externalTaskApi = externalTaskApi,
       subscriptionRepository = subscriptionRepository,
       failureRetrySupplier = failureRetrySupplier,
       valueMapper = valueMapper
@@ -135,8 +135,8 @@ class Cib7RemotePullServicesAutoConfiguration {
   @Bean("cib7remote-process-definition-meta-data-resolver")
   @Qualifier("cib7remote-process-definition-meta-data-resolver")
   @ConditionalOnMissingQualifiedBean(beanClass = ProcessDefinitionMetaDataResolver::class, qualifier = "cib7remote-process-definition-meta-data-resolver")
-  fun cachingProcessDefinitionMetaDataResolver(processDefinitionApiClient: ProcessDefinitionApiClient): ProcessDefinitionMetaDataResolver {
-    return CachingProcessDefinitionMetaDataResolver(processDefinitionApiClient)
+  fun cachingProcessDefinitionMetaDataResolver(processDefinitionApi: ProcessDefinitionApi): ProcessDefinitionMetaDataResolver {
+    return CachingProcessDefinitionMetaDataResolver(processDefinitionApi)
   }
 
   @Bean("cib7remote-user-task-delivery")
@@ -147,9 +147,9 @@ class Cib7RemotePullServicesAutoConfiguration {
   fun scheduledUserTaskDelivery(
     @Qualifier("cib7remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
-    taskApiClient: TaskApiClient,
-    taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-    taskVariableApiClient: TaskVariableApiClient,
+    taskApi: TaskApi,
+    taskIdentityLinkApi: TaskIdentityLinkApi,
+    taskVariableApi: TaskVariableApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
     @Qualifier("cib7remote-user-task-worker-executor")
@@ -161,9 +161,9 @@ class Cib7RemotePullServicesAutoConfiguration {
       executorService = executorService,
       valueMapper = valueMapper,
       processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
-      taskApiClient = taskApiClient,
-      taskIdentityLinkApiClient = taskIdentityLinkApiClient,
-      taskVariableApiClient = taskVariableApiClient,
+      taskApi = taskApi,
+      taskIdentityLinkApi = taskIdentityLinkApi,
+      taskVariableApi = taskVariableApi,
       deserializeOnServer = c7AdapterProperties.userTasks.deserializeOnServer
     )
   }
@@ -177,12 +177,12 @@ class Cib7RemotePullServicesAutoConfiguration {
     strategy = Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun userTaskCompletionApi(
-    taskApiClient: TaskApiClient,
+    taskApi: TaskApi,
     subscriptionRepository: SubscriptionRepository,
     valueMapper: ValueMapper,
   ): UserTaskCompletionApi =
     UserTaskCompletionApiImpl(
-      taskApiClient = taskApiClient,
+      taskApi = taskApi,
       subscriptionRepository = subscriptionRepository,
       valueMapper = valueMapper
     )
@@ -196,15 +196,15 @@ class Cib7RemotePullServicesAutoConfiguration {
     strategy = Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun userTaskModificationApi(
-    taskApiClient: TaskApiClient,
-    taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-    taskLocalVariableApiClient: TaskLocalVariableApiClient,
+    taskApi: TaskApi,
+    taskIdentityLinkApi: TaskIdentityLinkApi,
+    taskLocalVariableApi: TaskLocalVariableApi,
     valueMapper: ValueMapper
   ): UserTaskModificationApi =
     UserTaskModificationApiImpl(
-      taskApiClient = taskApiClient,
-      taskIdentityLinkApiClient = taskIdentityLinkApiClient,
-      taskLocalVariableApiClient = taskLocalVariableApiClient,
+      taskApi = taskApi,
+      taskIdentityLinkApi = taskIdentityLinkApi,
+      taskLocalVariableApi = taskLocalVariableApi,
       valueMapper = valueMapper
     )
 }

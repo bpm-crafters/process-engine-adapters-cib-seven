@@ -9,11 +9,11 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pu
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
-import org.cibseven.community.rest.client.api.ProcessDefinitionApiClient
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskVariableApiClient
+import org.cibseven.community.rest.client.api.ExternalTaskApi
+import org.cibseven.community.rest.client.api.ProcessDefinitionApi
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskVariableApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -47,10 +47,10 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
   @Qualifier("cib7remote-user-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["user-tasks.execute-initial-pull-on-startup"])
   fun configureInitialPullForUserTaskDelivery(
-    taskApiClient: TaskApiClient,
-    taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-    taskVariableApiClient: TaskVariableApiClient,
-    processDefinitionApiClient: ProcessDefinitionApiClient,
+    taskApi: TaskApi,
+    taskIdentityLinkApi: TaskIdentityLinkApi,
+    taskVariableApi: TaskVariableApi,
+    processDefinitionApi: ProcessDefinitionApi,
     subscriptionRepository: SubscriptionRepository,
     @Qualifier("cib7remote-user-task-worker-executor")
     executorService: ExecutorService,
@@ -59,9 +59,9 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     c7AdapterProperties: Cib7RemoteAdapterProperties
   ) = Cib7RemoteInitialPullUserTasksDeliveryBinding(
-    taskApiClient = taskApiClient,
-    taskIdentityLinkApiClient = taskIdentityLinkApiClient,
-    taskVariableApiClient = taskVariableApiClient,
+    taskApi = taskApi,
+    taskIdentityLinkApi = taskIdentityLinkApi,
+    taskVariableApi = taskVariableApi,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     subscriptionRepository = subscriptionRepository,
     executorService = executorService,
@@ -73,7 +73,7 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
   @Qualifier("cib7remote-service-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["service-tasks.execute-initial-pull-on-startup"])
   fun configureInitialPullForExternalServiceTaskDelivery(
-    externalTaskApi: ExternalTaskApiClient,
+    externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
     @Qualifier("cib7remote-service-task-worker-executor")
@@ -83,7 +83,7 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     metrics: PullServiceTaskDeliveryMetrics,
   ) = Cib7RemoteInitialPullServiceTasksDeliveryBinding(
-    externalTaskApiClient = externalTaskApi,
+    externalTaskApi = externalTaskApi,
     subscriptionRepository = subscriptionRepository,
     c7AdapterProperties = c7AdapterProperties,
     executor = executor,

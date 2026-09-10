@@ -7,7 +7,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pu
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullServiceTaskDeliveryMetrics
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
+import org.cibseven.community.rest.client.api.ExternalTaskApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
@@ -25,7 +25,7 @@ private val logger = KotlinLogging.logger {}
  */
 @Order(ORDER)
 open class Cib7RemoteInitialPullServiceTasksDeliveryBinding(
-  externalTaskApiClient: ExternalTaskApiClient,
+  externalTaskApi: ExternalTaskApi,
   subscriptionRepository: SubscriptionRepository,
   c7AdapterProperties: Cib7RemoteAdapterProperties,
   executor: ThreadPoolExecutor,
@@ -39,7 +39,7 @@ open class Cib7RemoteInitialPullServiceTasksDeliveryBinding(
 
   private val pullDelivery = PullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
-    externalTaskApiClient = externalTaskApiClient,
+    externalTaskApi = externalTaskApi,
     workerId = c7AdapterProperties.serviceTasks.workerId,
     maxTasks = c7AdapterProperties.serviceTasks.maxTaskCount,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,

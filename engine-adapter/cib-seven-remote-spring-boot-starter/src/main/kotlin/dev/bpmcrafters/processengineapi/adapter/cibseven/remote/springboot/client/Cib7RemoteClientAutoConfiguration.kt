@@ -14,17 +14,17 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.engine.variable.Variables
 import org.cibseven.bpm.engine.variable.type.ValueTypeResolver
-import org.cibseven.community.rest.client.api.DecisionDefinitionApiClient
-import org.cibseven.community.rest.client.api.DeploymentApiClient
-import org.cibseven.community.rest.client.api.ExternalTaskApiClient
-import org.cibseven.community.rest.client.api.MessageApiClient
-import org.cibseven.community.rest.client.api.ProcessDefinitionApiClient
-import org.cibseven.community.rest.client.api.ProcessInstanceApiClient
-import org.cibseven.community.rest.client.api.SignalApiClient
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskLocalVariableApiClient
-import org.cibseven.community.rest.client.api.TaskVariableApiClient
+import org.cibseven.community.rest.client.api.DecisionDefinitionApi
+import org.cibseven.community.rest.client.api.DeploymentApi
+import org.cibseven.community.rest.client.api.ExternalTaskApi
+import org.cibseven.community.rest.client.api.MessageApi
+import org.cibseven.community.rest.client.api.ProcessDefinitionApi
+import org.cibseven.community.rest.client.api.ProcessInstanceApi
+import org.cibseven.community.rest.client.api.SignalApi
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskLocalVariableApi
+import org.cibseven.community.rest.client.api.TaskVariableApi
 import org.cibseven.community.rest.client.invoker.ApiClient
 import org.cibseven.spin.plugin.variable.value.SpinValue
 import org.springframework.beans.factory.annotation.Qualifier
@@ -42,7 +42,7 @@ private val logger = KotlinLogging.logger {}
  * Unlike the Camunda 7 adapter — which relies on a Feign client with Spring auto-registered beans —
  * the generated CIB seven client is `apache-httpclient` based. We therefore construct a single
  * [ApiClient] (configured from [Cib7RemoteAdapterProperties.client]) and expose each generated
- * `*ApiClient` as a bean built from it. The value mapper is wired the same way the Camunda 7
+ * `*Api` as a bean built from it. The value mapper is wired the same way the Camunda 7
  * `ValueMapperConfiguration` did, so serialization behaves identically.
  */
 @AutoConfiguration(before = [dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterAutoConfiguration::class])
@@ -51,7 +51,7 @@ class Cib7RemoteClientAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ApiClient::class)
-  fun cib7RemoteApiClient(properties: Cib7RemoteAdapterProperties): ApiClient =
+  fun cib7RemoteApi(properties: Cib7RemoteAdapterProperties): ApiClient =
     ApiClient().apply {
       setBasePath(properties.client.baseUrl)
       if (!properties.client.username.isNullOrBlank()) {
@@ -63,47 +63,47 @@ class Cib7RemoteClientAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  fun processDefinitionApiClient(apiClient: ApiClient) = ProcessDefinitionApiClient(apiClient)
+  fun processDefinitionApi(apiClient: ApiClient) = ProcessDefinitionApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun processInstanceApiClient(apiClient: ApiClient) = ProcessInstanceApiClient(apiClient)
+  fun processInstanceApi(apiClient: ApiClient) = ProcessInstanceApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun messageApiClient(apiClient: ApiClient) = MessageApiClient(apiClient)
+  fun messageApi(apiClient: ApiClient) = MessageApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun signalApiClient(apiClient: ApiClient) = SignalApiClient(apiClient)
+  fun signalApi(apiClient: ApiClient) = SignalApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun deploymentApiClient(apiClient: ApiClient) = DeploymentApiClient(apiClient)
+  fun deploymentApi(apiClient: ApiClient) = DeploymentApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun decisionDefinitionApiClient(apiClient: ApiClient) = DecisionDefinitionApiClient(apiClient)
+  fun decisionDefinitionApi(apiClient: ApiClient) = DecisionDefinitionApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun externalTaskApiClient(apiClient: ApiClient) = ExternalTaskApiClient(apiClient)
+  fun externalTaskApi(apiClient: ApiClient) = ExternalTaskApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun taskApiClient(apiClient: ApiClient) = TaskApiClient(apiClient)
+  fun taskApi(apiClient: ApiClient) = TaskApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun taskIdentityLinkApiClient(apiClient: ApiClient) = TaskIdentityLinkApiClient(apiClient)
+  fun taskIdentityLinkApi(apiClient: ApiClient) = TaskIdentityLinkApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun taskLocalVariableApiClient(apiClient: ApiClient) = TaskLocalVariableApiClient(apiClient)
+  fun taskLocalVariableApi(apiClient: ApiClient) = TaskLocalVariableApi(apiClient)
 
   @Bean
   @ConditionalOnMissingBean
-  fun taskVariableApiClient(apiClient: ApiClient) = TaskVariableApiClient(apiClient)
+  fun taskVariableApi(apiClient: ApiClient) = TaskVariableApi(apiClient)
 
   // --- value mapping (mirrors the Camunda 7 ValueMapperConfiguration) ---
 

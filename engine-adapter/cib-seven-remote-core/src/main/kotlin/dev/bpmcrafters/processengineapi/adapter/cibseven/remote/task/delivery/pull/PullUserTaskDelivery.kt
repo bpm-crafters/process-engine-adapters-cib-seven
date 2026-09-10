@@ -8,12 +8,12 @@ import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
 import dev.bpmcrafters.processengineapi.task.TaskInformation
 import dev.bpmcrafters.processengineapi.task.TaskType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskVariableApiClient
-import org.cibseven.community.rest.client.model.IdentityLinkDto
-import org.cibseven.community.rest.client.model.TaskQueryDto
-import org.cibseven.community.rest.client.model.TaskWithAttachmentAndCommentDto
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskVariableApi
+import org.cibseven.community.rest.client.dto.IdentityLinkDto
+import org.cibseven.community.rest.client.dto.TaskQueryDto
+import org.cibseven.community.rest.client.dto.TaskWithAttachmentAndCommentDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
@@ -25,9 +25,9 @@ private val logger = KotlinLogging.logger {}
  * Uses internal Java API for pulling tasks.
  */
 class PullUserTaskDelivery(
-  private val taskApiClient: TaskApiClient,
-  private val taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-  private val taskVariableApiClient: TaskVariableApiClient,
+  private val taskApi: TaskApi,
+  private val taskIdentityLinkApi: TaskIdentityLinkApi,
+  private val taskVariableApi: TaskVariableApi,
   private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   private val subscriptionRepository: SubscriptionRepository,
   private val executorService: ExecutorService,
@@ -54,7 +54,7 @@ class PullUserTaskDelivery(
         }
 
         logger.trace { "PROCESS-ENGINE-C7-REMOTE-036: pulling user tasks for subscriptions: $subscriptions" }
-        val result = taskApiClient
+        val result = taskApi
           .queryTasks(0, Integer.MAX_VALUE, TaskQueryDto().forSubscriptions(subscriptions))
 
         val taskDtoList = result
@@ -68,7 +68,7 @@ class PullUserTaskDelivery(
                 executorService.submit {  // in another thread
                   try {
                     val candidates =
-                      taskIdentityLinkApiClient.getIdentityLinks(task.id, null).toSet()
+                      taskIdentityLinkApi.getIdentityLinks(task.id, null).toSet()
 
                     // create task information and set up the reason
                     val taskInformation =
@@ -96,7 +96,7 @@ class PullUserTaskDelivery(
                         deliveredTasks[task.id!!] = taskInformation
                       }
                       val variables =
-                        taskVariableApiClient.getTaskVariables(task.id, deserializeOnServer)
+                        taskVariableApi.getTaskVariables(task.id, deserializeOnServer)
                           .filterBySubscription(activeSubscription)
                           .let { dtoList -> valueMapper.mapDtos(variables = dtoList, deserializeValues = true) }
                       logger.debug { "PROCESS-ENGINE-C7-REMOTE-037: delivering user task ${task.id}." }
