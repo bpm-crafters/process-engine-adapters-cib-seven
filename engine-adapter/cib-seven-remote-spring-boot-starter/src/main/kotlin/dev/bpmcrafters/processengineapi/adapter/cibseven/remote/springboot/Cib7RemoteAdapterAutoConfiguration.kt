@@ -26,6 +26,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.toolisticon.spring.condition.ConditionalOnMissingQualifiedBean
 import jakarta.annotation.PostConstruct
 import org.cibseven.community.rest.client.api.*
+import org.cibseven.community.rest.client.api.SignalApi as SignalRestApi
 import org.cibseven.community.rest.client.invoker.ApiClient
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import org.springframework.beans.factory.annotation.Qualifier
@@ -59,30 +60,30 @@ class Cib7RemoteAdapterAutoConfiguration {
   @Bean("cib7remote-start-process-api")
   @Qualifier("cib7remote-start-process-api")
   fun startProcessApi(
-    processDefinitionApiClient: ProcessDefinitionApiClient,
-    messageApiClient: MessageApiClient,
-    processInstanceApiClient: ProcessInstanceApiClient,
+    processDefinitionApi: ProcessDefinitionApi,
+    messageApi: MessageApi,
+    processInstanceApi: ProcessInstanceApi,
     valueMapper: ValueMapper,
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   ): StartProcessApi = StartProcessApiImpl(
-    processDefinitionApiClient = processDefinitionApiClient,
-    messageApiClient = messageApiClient,
-    processInstanceApiClient = processInstanceApiClient,
+    processDefinitionApi = processDefinitionApi,
+    messageApi = messageApi,
+    processInstanceApi = processInstanceApi,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     valueMapper = valueMapper
   )
 
   @Bean("cib7remote-correlation-api")
   @Qualifier("cib7remote-correlation-api")
-  fun correlationApi(messageApiClient: MessageApiClient, valueMapper: ValueMapper): CorrelationApi = CorrelationApiImpl(
-    messageApiClient = messageApiClient,
+  fun correlationApi(messageApi: MessageApi, valueMapper: ValueMapper): CorrelationApi = CorrelationApiImpl(
+    messageApi = messageApi,
     valueMapper = valueMapper
   )
 
   @Bean("cib7remote-signal-api")
   @Qualifier("cib7remote-signal-api")
-  fun signalApi(signalApiClient: SignalApiClient, valueMapper: ValueMapper): SignalApi = SignalApiImpl(
-    signalApiClient = signalApiClient,
+  fun signalApi(signalApi: SignalRestApi, valueMapper: ValueMapper): SignalApi = SignalApiImpl(
+    signalApi = signalApi,
     valueMapper = valueMapper
   )
 
@@ -94,9 +95,9 @@ class Cib7RemoteAdapterAutoConfiguration {
 
   @Bean("cib7remote-evaluate-decision-api")
   @Qualifier("cib7remote-evaluate-decision-api")
-  fun evaluateDecisionApi(decisionDefinitionApiClient: DecisionDefinitionApiClient, valueMapper: ValueMapper,
+  fun evaluateDecisionApi(decisionDefinitionApi: DecisionDefinitionApi, valueMapper: ValueMapper,
                           dataConverter: AdapterDataConverter): EvaluateDecisionApi = EvaluateDecisionApiImpl(
-    decisionDefinitionApiClient = decisionDefinitionApiClient,
+    decisionDefinitionApi = decisionDefinitionApi,
     valueMapper = valueMapper,
     dataConverter = dataConverter
   )

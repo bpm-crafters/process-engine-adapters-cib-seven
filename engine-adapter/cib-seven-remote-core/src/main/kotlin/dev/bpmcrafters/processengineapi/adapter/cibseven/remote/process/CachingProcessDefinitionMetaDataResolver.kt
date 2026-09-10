@@ -1,12 +1,12 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process
 
-import org.cibseven.community.rest.client.api.ProcessDefinitionApiClient
+import org.cibseven.community.rest.client.api.ProcessDefinitionApi
 
 /**
  * Simple in-memory caching resolver for process definition for a given process definition id.
  */
 data class CachingProcessDefinitionMetaDataResolver(
-  val processDefinitionApiClient: ProcessDefinitionApiClient,
+  val processDefinitionApi: ProcessDefinitionApi,
   private val keys: MutableMap<String, String> = mutableMapOf(),
   private val versionTags: MutableMap<String, String?> = mutableMapOf(),
   private val processDefinitionIds: MutableMap<Pair<String, String?>, String> = mutableMapOf()
@@ -44,12 +44,12 @@ data class CachingProcessDefinitionMetaDataResolver(
 
   private fun fetchProcessByKeyAndTenant(processDefinitionKey: String, tenantId: String?) {
     val result = if (tenantId != null) {
-      processDefinitionApiClient.getLatestProcessDefinitionByTenantId(
+      processDefinitionApi.getLatestProcessDefinitionByTenantId(
         processDefinitionKey,
         tenantId
       )
     } else {
-      processDefinitionApiClient.getProcessDefinitionByKey(
+      processDefinitionApi.getProcessDefinitionByKey(
         processDefinitionKey
       )
     }
@@ -60,7 +60,7 @@ data class CachingProcessDefinitionMetaDataResolver(
   }
 
   private fun fetchProcessByDefinitionId(processDefinitionId: String) {
-    val definition = processDefinitionApiClient.getProcessDefinition(processDefinitionId)
+    val definition = processDefinitionApi.getProcessDefinition(processDefinitionId)
     this.keys[processDefinitionId] = definition.key!!
     this.versionTags[processDefinitionId] = definition.versionTag
   }

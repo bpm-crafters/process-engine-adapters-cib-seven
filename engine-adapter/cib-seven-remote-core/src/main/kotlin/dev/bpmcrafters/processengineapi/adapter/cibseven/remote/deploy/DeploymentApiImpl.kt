@@ -11,7 +11,7 @@ import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder
 import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.cibseven.community.rest.client.invoker.ApiClient
-import org.cibseven.community.rest.client.model.DeploymentWithDefinitionsDto
+import org.cibseven.community.rest.client.dto.DeploymentWithDefinitionsDto
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * Creates deployments over the CIB seven REST API.
  *
- * The generated `DeploymentApiClient.createDeployment` only accepts a single `File`, which cannot
+ * The generated `DeploymentApi.createDeployment` only accepts a single `File`, which cannot
  * represent a multi-resource bundle deployment. We therefore build the `multipart/form-data` request
  * by hand — one `data` part per resource — and execute it with the [ApiClient]'s configured HTTP
  * client, so base path, authentication and interceptors stay consistent with the rest of the adapter.
