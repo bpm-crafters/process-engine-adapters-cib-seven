@@ -143,7 +143,6 @@ class PullUserTaskDelivery(
                 )
               }
             }
-            // deactivate active subscription and handle termination
             logger.trace { "PROCESS-ENGINE-C7-REMOTE-042: deactivating $taskId, task is gone." }
             synchronized(deliveredTasks) {
               deliveredTasks.remove(taskId)
