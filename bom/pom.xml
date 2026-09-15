@@ -21,6 +21,11 @@
       </dependency>
       <dependency>
         <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+        <artifactId>process-engine-adapter-cib-seven-adapter-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
         <artifactId>process-engine-adapter-cib-seven-embedded-core</artifactId>
         <version>${project.version}</version>
       </dependency>

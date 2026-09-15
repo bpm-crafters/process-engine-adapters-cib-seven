@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.*
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
@@ -100,7 +101,9 @@ class PullUserTaskDelivery(
                           .filterBySubscription(activeSubscription)
                           .let { dtoList -> valueMapper.mapDtos(variables = dtoList, deserializeValues = true) }
                       logger.debug { "PROCESS-ENGINE-C7-REMOTE-037: delivering user task ${task.id}." }
-                      activeSubscription.action.accept(taskInformation, variables)
+                      withThreadContextClassLoader(activeSubscription.action) {
+                        activeSubscription.action.accept(taskInformation, variables)
+                      }
                     } else {
                       logger.trace { "PROCESS-ENGINE-C7-REMOTE-040: skipping task ${task.id} since it is unchanged." }
                     }
@@ -130,12 +133,16 @@ class PullUserTaskDelivery(
         deliveredTaskIds.parallelStream().map { taskId ->
           executorService.submit {
             // deactivate active subscription and handle termination
-            subscriptionRepository.deactivateSubscriptionForTask(taskId)?.termination?.accept(
-              TaskInformation(
-                taskId = taskId,
-                meta = emptyMap()
-              ).withReason(TaskInformation.DELETE)
-            )
+            subscriptionRepository.deactivateSubscriptionForTask(taskId)?.let { subscription ->
+              withThreadContextClassLoader(subscription.termination) {
+                subscription.termination.accept(
+                  TaskInformation(
+                    taskId = taskId,
+                    meta = emptyMap()
+                  ).withReason(TaskInformation.DELETE)
+                )
+              }
+            }
             // deactivate active subscription and handle termination
             logger.trace { "PROCESS-ENGINE-C7-REMOTE-042: deactivating $taskId, task is gone." }
             synchronized(deliveredTasks) {
@@ -160,9 +167,11 @@ class PullUserTaskDelivery(
     }
     if (activeSubscription != null) {
       try {
-        activeSubscription.termination.accept(
-          TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
-        )
+        withThreadContextClassLoader(activeSubscription.termination) {
+          activeSubscription.termination.accept(
+            TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
+          )
+        }
       } catch (terminationError: Exception) {
         logger.error(terminationError) { "PROCESS-ENGINE-C7-REMOTE-045: error cleaning up failed delivery for task $taskId: ${terminationError.message}" }
       }

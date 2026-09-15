@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.ExternalServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.toTaskInformation
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
@@ -66,7 +67,9 @@ class EmbeddedPullServiceTaskDelivery(
                 subscriptionRepository.activateSubscriptionForTask(lockedTask.id, activeSubscription)
                 val variables = lockedTask.variables.filterBySubscription(activeSubscription)
                 logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-031: delivering service task ${lockedTask.id}." }
-                activeSubscription.action.accept(taskInformation, variables)
+                withThreadContextClassLoader(activeSubscription.action) {
+                  activeSubscription.action.accept(taskInformation, variables)
+                }
                 logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
               } else {
                 logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-041: skipping task ${lockedTask.id} since it is unchanged." }
@@ -90,12 +93,16 @@ class EmbeddedPullServiceTaskDelivery(
       deliveredTaskIds.parallelStream().map { taskId ->
         executorService.submit {
           // deactivate active subscription and handle termination
-          subscriptionRepository.deactivateSubscriptionForTask(taskId)?.termination?.accept(
-            TaskInformation(
-              taskId,
-              emptyMap()
-            ).withReason(TaskInformation.DELETE)
-          )
+          subscriptionRepository.deactivateSubscriptionForTask(taskId)?.let { subscription ->
+            withThreadContextClassLoader(subscription.termination) {
+              subscription.termination.accept(
+                TaskInformation(
+                  taskId,
+                  emptyMap()
+                ).withReason(TaskInformation.DELETE)
+              )
+            }
+          }
           logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-043: deactivating $taskId, task is gone." }
         }
       }.forEach { taskTerminationFuture -> taskTerminationFuture.get() }
