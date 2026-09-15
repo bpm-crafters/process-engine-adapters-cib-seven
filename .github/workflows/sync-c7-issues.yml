@@ -71,6 +71,55 @@ jobs:
               gh issue create --repo "$TARGET_REPO" \
                 --title "[c7#$num] $title" \
                 --body "$new_body" \
+                --assignee emaarco \
                 "${label_args[@]}" </dev/null
               echo "created mirror for c7#$num"
+            done
+
+  remind-on-parent-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remind on mirrors whose Camunda 7 parent was closed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Guard label — marks mirrors we already reminded about (idempotent)
+          gh label create "Parent closed" --repo "$TARGET_REPO" \
+            --color "b60205" \
+            --description "Parent Camunda 7 issue is closed – action needed here" --force || true
+
+          # Open mirror issues in this repo
+          gh issue list --repo "$TARGET_REPO" --state open --limit 500 \
+            --json number,title,labels \
+          | jq -c '.[]' \
+          | while IFS= read -r row; do
+              target_num=$(jq -r '.number' <<<"$row")
+              title=$(jq -r '.title' <<<"$row")
+
+              # Only mirrors carry the "[c7#<num>]" prefix
+              if [[ ! "$title" =~ ^\[c7#([0-9]+)\] ]]; then
+                continue
+              fi
+              c7_num="${BASH_REMATCH[1]}"
+
+              # Skip if we already reminded (dedup guard)
+              if jq -e '.labels[]?.name == "Parent closed"' <<<"$row" >/dev/null; then
+                continue
+              fi
+
+              parent_state=$(gh issue view "$c7_num" --repo "$SOURCE_REPO" --json state \
+                             --jq '.state')
+              if [ "$parent_state" != "CLOSED" ]; then
+                continue
+              fi
+
+              reminder=$(printf 'The upstream Camunda 7 issue %s/issues/%s has been closed, but this mirrored issue is still open.\n\nPlease check whether the corresponding change needs to be applied here as well, and close this issue if it is already covered.' \
+                         "https://github.com/$SOURCE_REPO" "$c7_num")
+
+              gh issue comment "$target_num" --repo "$TARGET_REPO" --body "$reminder"
+              gh issue edit "$target_num" --repo "$TARGET_REPO" --add-label "Parent closed"
+              echo "reminded on #$target_num (c7#$c7_num closed)"
             done
