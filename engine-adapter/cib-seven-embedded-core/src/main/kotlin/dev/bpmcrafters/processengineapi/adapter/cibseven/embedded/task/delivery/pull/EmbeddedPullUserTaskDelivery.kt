@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.*
@@ -90,7 +91,9 @@ class EmbeddedPullUserTaskDelivery(
                     }
                     val variables = taskService.getVariables(task.id).filterBySubscription(activeSubscription)
                     logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-037: delivering user task ${task.id}." }
-                    activeSubscription.action.accept(taskInformation, variables)
+                    withThreadContextClassLoader(activeSubscription.action) {
+                      activeSubscription.action.accept(taskInformation, variables)
+                    }
                   } else {
                     logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-040: skipping task ${task.id} since it is unchanged." }
                   }
@@ -124,11 +127,13 @@ class EmbeddedPullUserTaskDelivery(
           executorService.submit { // also async
             // deactivate active subscription and handle termination
             logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-042: deactivating $taskId, task is gone." }
-            subscriptionRepository.deactivateSubscriptionForTask(taskId)
-              ?.termination
-              ?.accept(
-                TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
-              )
+            subscriptionRepository.deactivateSubscriptionForTask(taskId)?.let { subscription ->
+              withThreadContextClassLoader(subscription.termination) {
+                subscription.termination.accept(
+                  TaskInformation(taskId = taskId, meta = emptyMap()).withReason(TaskInformation.DELETE)
+                )
+              }
+            }
             synchronized(deliveredTasks) {
               deliveredTasks.remove(taskId)
             }
