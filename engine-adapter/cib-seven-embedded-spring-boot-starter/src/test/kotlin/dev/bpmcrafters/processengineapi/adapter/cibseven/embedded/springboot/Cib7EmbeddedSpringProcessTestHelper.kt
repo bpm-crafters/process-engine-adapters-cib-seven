@@ -1,5 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.toProcessInformation
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
@@ -21,7 +22,8 @@ class Cib7EmbeddedSpringProcessTestHelper(
   private val taskSubscriptionApi: TaskSubscriptionApi,
   private val userTaskCompletionApi: UserTaskCompletionApi,
   private val serviceTaskCompletionApi: ServiceTaskCompletionApi,
-  private val subscriptionRepository: SubscriptionRepository
+  private val subscriptionRepository: SubscriptionRepository,
+  private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
 ) : ProcessTestHelper {
 
   override fun getStartProcessApi(): StartProcessApi = startProcessApi
@@ -41,7 +43,7 @@ class Cib7EmbeddedSpringProcessTestHelper(
       .createProcessInstanceQuery()
       .processInstanceId(instanceId)
       .singleResult()
-      .toProcessInformation()
+      .toProcessInformation(processDefinitionMetaDataResolver)
 
   override fun getActiveElements(instanceId: String): Collection<String> =
     runtimeService.getActiveActivityIds(instanceId)

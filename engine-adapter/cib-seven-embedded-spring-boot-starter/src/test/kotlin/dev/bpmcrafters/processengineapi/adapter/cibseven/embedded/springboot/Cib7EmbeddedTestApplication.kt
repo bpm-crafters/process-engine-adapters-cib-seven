@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
 import com.tngtech.jgiven.integration.spring.EnableJGiven
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnServiceTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
@@ -34,6 +35,7 @@ class Cib7EmbeddedTestApplication {
       userTaskCompletionApi: UserTaskCompletionApi,
       serviceTaskCompletionApi: ServiceTaskCompletionApi,
       subscriptionRepository: SubscriptionRepository,
+      processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   ): ProcessTestHelper = Cib7EmbeddedSpringProcessTestHelper(
     runtimeService = runtimeService,
     startProcessApi = startProcessApi,
@@ -42,7 +44,8 @@ class Cib7EmbeddedTestApplication {
     externalTaskDelivery = externalTaskDelivery,
     userTaskCompletionApi = userTaskCompletionApi,
     serviceTaskCompletionApi = serviceTaskCompletionApi,
-    subscriptionRepository = subscriptionRepository
+    subscriptionRepository = subscriptionRepository,
+    processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
   )
 
 }

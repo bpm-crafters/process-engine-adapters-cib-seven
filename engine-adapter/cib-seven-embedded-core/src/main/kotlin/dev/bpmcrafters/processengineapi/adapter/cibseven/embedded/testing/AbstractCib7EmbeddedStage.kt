@@ -121,11 +121,15 @@ abstract class AbstractCib7EmbeddedStage<SUBTYPE : AbstractCib7EmbeddedStage<SUB
 
     val subscriptionRepository = InMemSubscriptionRepository()
     val commandExecutor = EngineCommandExecutor(Executor { it.run() })
+    val processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(
+      repositoryService = processEngineServices.repositoryService
+    )
 
     startProcessApi = StartProcessApiImpl(
       runtimeService = processEngineServices.runtimeService,
       repositoryService = processEngineServices.repositoryService,
-      commandExecutor = commandExecutor
+      commandExecutor = commandExecutor,
+      processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     )
     deploymentApi = DeploymentApiImpl(
       repositoryService = processEngineServices.repositoryService,
@@ -137,7 +141,7 @@ abstract class AbstractCib7EmbeddedStage<SUBTYPE : AbstractCib7EmbeddedStage<SUB
     )
     embeddedPullUserTaskDelivery = EmbeddedPullUserTaskDelivery(
       taskService = processEngineServices.taskService,
-      processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = processEngineServices.repositoryService),
+      processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
       subscriptionRepository = subscriptionRepository,
       executorService = Executors.newFixedThreadPool(1)
     )
