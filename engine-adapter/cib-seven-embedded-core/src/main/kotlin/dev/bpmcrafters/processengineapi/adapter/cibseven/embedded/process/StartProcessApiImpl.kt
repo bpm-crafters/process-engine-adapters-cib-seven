@@ -5,6 +5,7 @@ import dev.bpmcrafters.processengineapi.MetaInfo
 import dev.bpmcrafters.processengineapi.MetaInfoAware
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.applyTenantRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.metaOf
 import dev.bpmcrafters.processengineapi.process.ProcessInformation
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionAtElementCmd
@@ -26,7 +27,8 @@ private val logger = KotlinLogging.logger {}
 class StartProcessApiImpl(
   private val runtimeService: RuntimeService,
   private val repositoryService: RepositoryService,
-  private val commandExecutor: EngineCommandExecutor
+  private val commandExecutor: EngineCommandExecutor,
+  private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
 ) : StartProcessApi {
 
   override fun startProcess(cmd: StartProcessCommand): CompletableFuture<ProcessInformation> {
@@ -51,13 +53,13 @@ class StartProcessApiImpl(
               processDefinition.id,
               businessKey,
               payload,
-            ).toProcessInformation()
+            ).toProcessInformation(processDefinitionMetaDataResolver)
           } else {
             runtimeService.startProcessInstanceByKey(
               cmd.definitionKey,
               businessKey,
               payload,
-            ).toProcessInformation()
+            ).toProcessInformation(processDefinitionMetaDataResolver)
           }
         }
 
@@ -74,7 +76,7 @@ class StartProcessApiImpl(
             .applyTenantRestrictions(ensureSupported(cmd.restrictions))
             .setVariables(payload)
             .correlateStartMessage()
-            .toProcessInformation()
+            .toProcessInformation(processDefinitionMetaDataResolver)
         }
 
       is StartProcessByDefinitionAtElementCmd ->
@@ -86,7 +88,7 @@ class StartProcessApiImpl(
             restrictions = cmd.restrictions,
           )
           val instance = this.startProcess(startProcessCommand).get()
-          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_KEY] as String
+          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_ID] as String
           runtimeService.createModification(processDefinitionId)
             .processInstanceIds(instance.instanceId)
             .startBeforeActivity(cmd.elementId)
@@ -103,7 +105,7 @@ class StartProcessApiImpl(
             restrictions = cmd.restrictions,
           )
           val instance = this.startProcess(startProcessCommand).get()
-          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_KEY] as String
+          val processDefinitionId = instance.meta[CommonRestrictions.PROCESS_DEFINITION_ID] as String
           runtimeService.createModification(processDefinitionId)
             .processInstanceIds(instance.instanceId)
             .startBeforeActivity(cmd.elementId)
@@ -125,12 +127,13 @@ class StartProcessApiImpl(
   )
 }
 
-fun ProcessInstance.toProcessInformation() = ProcessInformation(
+fun ProcessInstance.toProcessInformation(processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver) = ProcessInformation(
   instanceId = this.id,
-  meta = mapOf(
-    CommonRestrictions.PROCESS_DEFINITION_KEY to this.processDefinitionId,
+  meta = metaOf(
+    CommonRestrictions.PROCESS_DEFINITION_KEY to processDefinitionMetaDataResolver.getProcessDefinitionKey(this.processDefinitionId),
     CommonRestrictions.BUSINESS_KEY to this.businessKey,
     CommonRestrictions.TENANT_ID to this.tenantId,
-    "rootProcessInstanceId" to this.rootProcessInstanceId
+    "rootProcessInstanceId" to this.rootProcessInstanceId,
+    CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,
   )
 )

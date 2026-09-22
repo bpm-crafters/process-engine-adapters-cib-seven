@@ -4,6 +4,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.Thread
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.deploy.DeploymentApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.StartProcessApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.shared.EngineCommandExecutor
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.Cib7EmbeddedAdapterEnabledCondition
@@ -64,7 +65,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   ): StartProcessApi = StartProcessApiImpl(
     runtimeService = runtimeService,
     repositoryService = repositoryService,
-    commandExecutor = commandExecutor
+    commandExecutor = commandExecutor,
+    processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = repositoryService),
   )
 
   @Bean("cib7embedded-task-subscription-api")

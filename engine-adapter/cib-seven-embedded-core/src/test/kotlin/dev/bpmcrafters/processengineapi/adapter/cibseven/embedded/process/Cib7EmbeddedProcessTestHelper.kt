@@ -25,10 +25,12 @@ class Cib7EmbeddedProcessTestHelper(
 
   private var subscriptionRepository: InMemSubscriptionRepository = InMemSubscriptionRepository()
 
+  private val processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = processEngine.repositoryService)
+
   private var embeddedPullUserTaskDelivery: EmbeddedPullUserTaskDelivery = EmbeddedPullUserTaskDelivery(
     taskService = processEngine.taskService,
     subscriptionRepository = subscriptionRepository,
-    processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = processEngine.repositoryService),
+    processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     executorService = Executors.newFixedThreadPool(3)
   )
 
@@ -46,7 +48,8 @@ class Cib7EmbeddedProcessTestHelper(
   override fun getStartProcessApi(): StartProcessApi = StartProcessApiImpl(
     runtimeService = processEngine.runtimeService,
     repositoryService = processEngine.repositoryService,
-    commandExecutor = EngineCommandExecutor { it.run() }
+    commandExecutor = EngineCommandExecutor { it.run() },
+    processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
   )
 
   override fun getTaskSubscriptionApi(): TaskSubscriptionApi = Cib7TaskSubscriptionApiImpl(
@@ -81,7 +84,7 @@ class Cib7EmbeddedProcessTestHelper(
       .createProcessInstanceQuery()
       .processInstanceId(instanceId)
       .singleResult()
-      .toProcessInformation()
+      .toProcessInformation(processDefinitionMetaDataResolver)
 
   override fun getActiveElements(instanceId: String): Collection<String> =
     processEngine.runtimeService.getActiveActivityIds(instanceId)
