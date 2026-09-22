@@ -14,8 +14,8 @@ import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.test.ProcessTestHelper
-import org.cibseven.community.rest.client.api.ProcessInstanceApiClient
-import org.cibseven.community.rest.client.model.ActivityInstanceDto
+import org.cibseven.community.rest.client.api.ProcessInstanceApi
+import org.cibseven.community.rest.client.dto.ActivityInstanceDto
 
 class Cib7RemoteProcessTestHelper(
   private val startProcessApi: StartProcessApi,
@@ -25,7 +25,7 @@ class Cib7RemoteProcessTestHelper(
   private val userTaskCompletionApi: UserTaskCompletionApi,
   private val serviceTaskCompletionApi: ServiceTaskCompletionApi,
   private val subscriptionRepository: SubscriptionRepository,
-  private val processInstanceApiClient: ProcessInstanceApiClient,
+  private val processInstanceApi: ProcessInstanceApi,
   private val evaluateDecisionApi: EvaluateDecisionApi,
 ) : ProcessTestHelper {
 
@@ -50,13 +50,13 @@ class Cib7RemoteProcessTestHelper(
   }
 
   override fun getProcessInformation(instanceId: String): ProcessInformation =
-    processInstanceApiClient
+    processInstanceApi
       .getProcessInstance(instanceId)
       .toProcessInformation()
 
 
   override fun getActiveElements(instanceId: String): Collection<String> {
-    val tree = processInstanceApiClient.getActivityInstanceTree(instanceId)
+    val tree = processInstanceApi.getActivityInstanceTree(instanceId)
     return tree.collectActiveElements()
   }
 

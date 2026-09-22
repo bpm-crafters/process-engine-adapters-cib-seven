@@ -8,15 +8,15 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation.Corr
 import dev.bpmcrafters.processengineapi.correlation.CorrelateMessageCmd
 import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.MessageApiClient
-import org.cibseven.community.rest.client.model.CorrelationMessageDto
+import org.cibseven.community.rest.client.api.MessageApi
+import org.cibseven.community.rest.client.dto.CorrelationMessageDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 class CorrelationApiImpl(
-  private val messageApiClient: MessageApiClient,
+  private val messageApi: MessageApi,
   private val valueMapper: ValueMapper,
 ) : CorrelationApi {
 
@@ -37,7 +37,7 @@ class CorrelationApiImpl(
         }
       } variable ${correlation.correlationVariable} with value ${correlation.correlationKey}" }
       val payload = cmd.payloadSupplier.get()
-      val messageCorrelation = messageApiClient.deliverMessage(
+      val messageCorrelation = messageApi.deliverMessage(
         CorrelationMessageDto()
           .messageName(cmd.messageName)
           .processVariables(valueMapper.mapValues(payload))

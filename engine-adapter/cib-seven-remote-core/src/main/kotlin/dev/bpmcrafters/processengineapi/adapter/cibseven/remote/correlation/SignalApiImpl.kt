@@ -7,15 +7,15 @@ import dev.bpmcrafters.processengineapi.MetaInfoAware
 import dev.bpmcrafters.processengineapi.correlation.SendSignalCmd
 import dev.bpmcrafters.processengineapi.correlation.SignalApi
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.SignalApiClient
-import org.cibseven.community.rest.client.model.SignalDto
+import org.cibseven.community.rest.client.api.SignalApi as SignalRestApi
+import org.cibseven.community.rest.client.dto.SignalDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 class SignalApiImpl(
-  private val signalApiClient: SignalApiClient,
+  private val signalApi: SignalRestApi,
   private val valueMapper: ValueMapper
 ) : SignalApi {
 
@@ -23,7 +23,7 @@ class SignalApiImpl(
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-002: Sending signal ${cmd.signalName}." }
     return CompletableFuture.supplyAsync {
 
-      signalApiClient.throwSignal(
+      signalApi.throwSignal(
         SignalDto()
           .name(cmd.signalName)
           .variables(valueMapper.mapValues(cmd.payloadSupplier.get()))

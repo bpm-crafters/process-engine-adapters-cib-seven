@@ -6,9 +6,9 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessD
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskVariableApiClient
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskVariableApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
@@ -28,9 +28,9 @@ private val logger = KotlinLogging.logger {}
 open class Cib7RemoteInitialPullUserTasksDeliveryBinding(
   subscriptionRepository: SubscriptionRepository,
   processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
-  taskApiClient: TaskApiClient,
-  taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-  taskVariableApiClient: TaskVariableApiClient,
+  taskApi: TaskApi,
+  taskIdentityLinkApi: TaskIdentityLinkApi,
+  taskVariableApi: TaskVariableApi,
   executorService: ExecutorService,
   valueMapper: ValueMapper,
   c7RemoteAdapterProperties: Cib7RemoteAdapterProperties
@@ -44,9 +44,9 @@ open class Cib7RemoteInitialPullUserTasksDeliveryBinding(
     subscriptionRepository = subscriptionRepository,
     executorService = executorService,
     valueMapper = valueMapper,
-    taskApiClient = taskApiClient,
-    taskIdentityLinkApiClient = taskIdentityLinkApiClient,
-    taskVariableApiClient = taskVariableApiClient,
+    taskApi = taskApi,
+    taskIdentityLinkApi = taskIdentityLinkApi,
+    taskVariableApi = taskVariableApi,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     deserializeOnServer = c7RemoteAdapterProperties.userTasks.deserializeOnServer
   )

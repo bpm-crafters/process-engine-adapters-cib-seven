@@ -1,7 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
-import org.cibseven.community.rest.client.model.CorrelationMessageDto
+import org.cibseven.community.rest.client.dto.CorrelationMessageDto
 
 fun CorrelationMessageDto.applyRestrictions(restrictions: Map<String, String>) = this.apply {
   val tenantId = restrictions[CommonRestrictions.TENANT_ID]

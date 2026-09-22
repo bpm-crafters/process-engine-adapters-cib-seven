@@ -6,22 +6,22 @@ import dev.bpmcrafters.processengineapi.task.ChangeAssignmentModifyTaskCmd.*
 import dev.bpmcrafters.processengineapi.task.ChangeDatesModifyTaskCmd.*
 import dev.bpmcrafters.processengineapi.task.ChangePayloadModifyTaskCmd.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.TaskApiClient
-import org.cibseven.community.rest.client.api.TaskIdentityLinkApiClient
-import org.cibseven.community.rest.client.api.TaskLocalVariableApiClient
-import org.cibseven.community.rest.client.model.IdentityLinkDto
-import org.cibseven.community.rest.client.model.PatchVariablesDto
-import org.cibseven.community.rest.client.model.TaskDto
-import org.cibseven.community.rest.client.model.UserIdDto
+import org.cibseven.community.rest.client.api.TaskApi
+import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
+import org.cibseven.community.rest.client.api.TaskLocalVariableApi
+import org.cibseven.community.rest.client.dto.IdentityLinkDto
+import org.cibseven.community.rest.client.dto.PatchVariablesDto
+import org.cibseven.community.rest.client.dto.TaskDto
+import org.cibseven.community.rest.client.dto.UserIdDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 class UserTaskModificationApiImpl(
-  private val taskApiClient: TaskApiClient,
-  private val taskIdentityLinkApiClient: TaskIdentityLinkApiClient,
-  private val taskLocalVariableApiClient: TaskLocalVariableApiClient,
+  private val taskApi: TaskApi,
+  private val taskIdentityLinkApi: TaskIdentityLinkApi,
+  private val taskLocalVariableApi: TaskLocalVariableApi,
   private val valueMapper: ValueMapper,
 ) : UserTaskModificationApi {
   override fun update(cmd: ModifyTaskCmd): CompletableFuture<Empty> {
@@ -48,37 +48,37 @@ class UserTaskModificationApiImpl(
 
   private fun changeAssignment(cmd: ChangeAssignmentModifyTaskCmd) {
     when (cmd) {
-      is AssignTaskCmd -> taskApiClient.setAssignee(cmd.taskId, UserIdDto().userId(cmd.assignee))
-      is UnassignTaskCmd -> taskApiClient.setAssignee(cmd.taskId, UserIdDto())
-      is ClearCandidateUsersTaskCmd -> taskIdentityLinkApiClient.removeAllCandidateUsers(cmd.taskId)
-      is ClearCandidateGroupsTaskCmd -> taskIdentityLinkApiClient.removeAllCandidateGroups(cmd.taskId)
-      is SetCandidateUsersTaskCmd -> taskIdentityLinkApiClient.setCandidateUsers(cmd.taskId, cmd.toIdentityLinkDtoList())
-      is SetCandidateGroupsTaskCmd -> taskIdentityLinkApiClient.setCandidateGroups(cmd.taskId, cmd.toIdentityLinkDtoList())
-      is AddCandidateUserTaskCmd, is AddCandidateGroupTaskCmd -> taskIdentityLinkApiClient.addIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
-      is RemoveCandidateUserTaskCmd, is RemoveCandidateGroupTaskCmd -> taskIdentityLinkApiClient.deleteIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
+      is AssignTaskCmd -> taskApi.setAssignee(cmd.taskId, UserIdDto().userId(cmd.assignee))
+      is UnassignTaskCmd -> taskApi.setAssignee(cmd.taskId, UserIdDto())
+      is ClearCandidateUsersTaskCmd -> taskIdentityLinkApi.removeAllCandidateUsers(cmd.taskId)
+      is ClearCandidateGroupsTaskCmd -> taskIdentityLinkApi.removeAllCandidateGroups(cmd.taskId)
+      is SetCandidateUsersTaskCmd -> taskIdentityLinkApi.setCandidateUsers(cmd.taskId, cmd.toIdentityLinkDtoList())
+      is SetCandidateGroupsTaskCmd -> taskIdentityLinkApi.setCandidateGroups(cmd.taskId, cmd.toIdentityLinkDtoList())
+      is AddCandidateUserTaskCmd, is AddCandidateGroupTaskCmd -> taskIdentityLinkApi.addIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
+      is RemoveCandidateUserTaskCmd, is RemoveCandidateGroupTaskCmd -> taskIdentityLinkApi.deleteIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
       else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
     }
   }
 
   private fun changePayload(cmd: ChangePayloadModifyTaskCmd) {
     when (cmd) {
-      is UpdatePayloadTaskCmd -> taskLocalVariableApiClient.modifyTaskLocalVariables(
+      is UpdatePayloadTaskCmd -> taskLocalVariableApi.modifyTaskLocalVariables(
         cmd.taskId,
         PatchVariablesDto().modifications(valueMapper.mapValues(cmd.get()))
       )
 
-      is DeletePayloadTaskCmd -> taskLocalVariableApiClient.removeVariablesLocal(cmd.taskId, cmd.get())
-      is ClearPayloadTaskCmd -> taskLocalVariableApiClient.clearTaskVariablesLocal(cmd.taskId)
+      is DeletePayloadTaskCmd -> taskLocalVariableApi.removeVariablesLocal(cmd.taskId, cmd.get())
+      is ClearPayloadTaskCmd -> taskLocalVariableApi.clearTaskVariablesLocal(cmd.taskId)
       else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
     }
   }
 
   private fun changeDates(cmd: ChangeDatesModifyTaskCmd) {
     when (cmd) {
-      is SetDueDateTaskCmd -> taskApiClient.updateTask(cmd.taskId, TaskDto().due(cmd.dueDate))
-      is ClearDueDateTaskCmd -> taskApiClient.updateTask(cmd.taskId, TaskDto().due(null))
-      is SetFollowUpDateTaskCmd -> taskApiClient.updateTask(cmd.taskId, TaskDto().followUp(cmd.followUpDate))
-      is ClearFollowUpDateTaskCmd -> taskApiClient.updateTask(cmd.taskId, TaskDto().followUp(null))
+      is SetDueDateTaskCmd -> taskApi.updateTask(cmd.taskId, TaskDto().due(cmd.dueDate))
+      is ClearDueDateTaskCmd -> taskApi.updateTask(cmd.taskId, TaskDto().due(null))
+      is SetFollowUpDateTaskCmd -> taskApi.updateTask(cmd.taskId, TaskDto().followUp(cmd.followUpDate))
+      is ClearFollowUpDateTaskCmd -> taskApi.updateTask(cmd.taskId, TaskDto().followUp(null))
       else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
     }
   }

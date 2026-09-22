@@ -6,16 +6,16 @@ import dev.bpmcrafters.processengineapi.MetaInfo
 import dev.bpmcrafters.processengineapi.MetaInfoAware
 import dev.bpmcrafters.processengineapi.decision.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.DecisionDefinitionApiClient
-import org.cibseven.community.rest.client.model.EvaluateDecisionDto
-import org.cibseven.community.rest.client.model.VariableValueDto
+import org.cibseven.community.rest.client.api.DecisionDefinitionApi
+import org.cibseven.community.rest.client.dto.EvaluateDecisionDto
+import org.cibseven.community.rest.client.dto.VariableValueDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 class EvaluateDecisionApiImpl(
-  private val decisionDefinitionApiClient: DecisionDefinitionApiClient,
+  private val decisionDefinitionApi: DecisionDefinitionApi,
   private val valueMapper: ValueMapper,
   private val dataConverter: AdapterDataConverter
 ) : EvaluateDecisionApi {
@@ -48,14 +48,14 @@ class EvaluateDecisionApiImpl(
 
           val variables = valueMapper.mapValues(command.payloadSupplier.get())
           val result = if (tenantId != null) {
-            decisionDefinitionApiClient
+            decisionDefinitionApi
               .evaluateDecisionByKeyAndTenant(
                 command.decisionRef,
                 tenantId,
                 EvaluateDecisionDto().variables(variables)
               )
           } else {
-            decisionDefinitionApiClient
+            decisionDefinitionApi
               .evaluateDecisionByKey(
                 command.decisionRef,
                 EvaluateDecisionDto().variables(variables)

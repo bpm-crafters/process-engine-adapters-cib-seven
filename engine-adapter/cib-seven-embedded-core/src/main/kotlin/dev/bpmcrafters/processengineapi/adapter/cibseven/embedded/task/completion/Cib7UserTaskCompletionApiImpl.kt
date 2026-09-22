@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion
 
 import dev.bpmcrafters.processengineapi.Empty
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.CompleteTaskByErrorCmd
 import dev.bpmcrafters.processengineapi.task.CompleteTaskCmd
@@ -28,7 +29,9 @@ class Cib7UserTaskCompletionApiImpl(
       cmd.get()
     )
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
-      termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
+      withThreadContextClassLoader(termination) {
+        termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
+      }
       logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-012: successfully completed user task ${cmd.taskId}." }
     }
     return CompletableFuture.completedFuture(Empty)
@@ -38,10 +41,14 @@ class Cib7UserTaskCompletionApiImpl(
     logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-013: throwing error on user task ${cmd.taskId}." }
     taskService.handleBpmnError(
       cmd.taskId,
-      cmd.errorCode
+      cmd.errorCode,
+      cmd.errorMessage,
+      cmd.get()
     )
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
-      termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
+      withThreadContextClassLoader(termination) {
+        termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
+      }
       logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-014: successfully thrown error on user task ${cmd.taskId}." }
     }
     return CompletableFuture.completedFuture(Empty)

@@ -7,19 +7,19 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation.appl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.metaOf
 import dev.bpmcrafters.processengineapi.process.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.cibseven.community.rest.client.api.MessageApiClient
-import org.cibseven.community.rest.client.api.ProcessDefinitionApiClient
-import org.cibseven.community.rest.client.api.ProcessInstanceApiClient
-import org.cibseven.community.rest.client.model.*
+import org.cibseven.community.rest.client.api.MessageApi
+import org.cibseven.community.rest.client.api.ProcessDefinitionApi
+import org.cibseven.community.rest.client.api.ProcessInstanceApi
+import org.cibseven.community.rest.client.dto.*
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
 
 class StartProcessApiImpl(
-  private val processDefinitionApiClient: ProcessDefinitionApiClient,
-  private val messageApiClient: MessageApiClient,
-  private val processInstanceApiClient: ProcessInstanceApiClient,
+  private val processDefinitionApi: ProcessDefinitionApi,
+  private val messageApi: MessageApi,
+  private val processInstanceApi: ProcessInstanceApi,
   private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   private val valueMapper: ValueMapper,
 ) : StartProcessApi {
@@ -34,7 +34,7 @@ class StartProcessApiImpl(
           val tenantId = cmd.restrictions[CommonRestrictions.TENANT_ID]
           val processDefinitionId = getProcessDefinitionId(cmd.definitionKey, tenantId)
 
-          val instance = processDefinitionApiClient.startProcessInstance(
+          val instance = processDefinitionApi.startProcessInstance(
             processDefinitionId,
             StartProcessInstanceDto()
               .apply {
@@ -53,7 +53,7 @@ class StartProcessApiImpl(
           logger.debug { "PROCESS-ENGINE-C7-REMOTE-005: starting a new process instance by message ${cmd.messageName}." }
           ensureSupported(cmd.restrictions)
           val payload = cmd.payloadSupplier.get()
-          val messageCorrelation = messageApiClient.deliverMessage(
+          val messageCorrelation = messageApi.deliverMessage(
             CorrelationMessageDto()
               .messageName(cmd.messageName)
               .processVariables(valueMapper.mapValues(cmd.payloadSupplier.get()))
@@ -93,7 +93,7 @@ class StartProcessApiImpl(
           startProcessInstanceDto.variables = valueMapper.mapValues(payload)
           startProcessInstanceDto.startInstructions(listOf(startInstructionDto))
 
-          val instance = processDefinitionApiClient.startProcessInstance(processDefinitionId, startProcessInstanceDto)
+          val instance = processDefinitionApi.startProcessInstance(processDefinitionId, startProcessInstanceDto)
           instance.toProcessInformation()
         }
 
@@ -114,7 +114,7 @@ class StartProcessApiImpl(
           val modificationDto = ProcessInstanceModificationDto()
           modificationDto.instructions(listOf(startInstructionDto))
 
-          processInstanceApiClient.modifyProcessInstance(instance.instanceId, modificationDto)
+          processInstanceApi.modifyProcessInstance(instance.instanceId, modificationDto)
           instance
         }
 

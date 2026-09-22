@@ -11,8 +11,8 @@ import org.cibseven.bpm.engine.variable.value.FileValue
 import org.cibseven.bpm.engine.variable.value.SerializableValue
 import org.cibseven.bpm.engine.variable.value.SerializationDataFormat
 import org.cibseven.bpm.engine.variable.value.TypedValue
-import org.cibseven.community.rest.client.model.VariableInstanceDto
-import org.cibseven.community.rest.client.model.VariableValueDto
+import org.cibseven.community.rest.client.dto.VariableInstanceDto
+import org.cibseven.community.rest.client.dto.VariableValueDto
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.serialization.CustomValueSerializer
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.serialization.ValueSerializer
 import java.util.*

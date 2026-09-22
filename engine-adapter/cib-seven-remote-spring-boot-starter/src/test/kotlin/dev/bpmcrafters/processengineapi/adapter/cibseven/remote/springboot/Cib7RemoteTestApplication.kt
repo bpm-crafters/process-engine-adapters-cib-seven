@@ -20,7 +20,7 @@ import dev.bpmcrafters.processengineapi.test.ProcessTestHelper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.client.spi.DataFormatConfigurator
 import org.cibseven.bpm.client.variable.impl.format.json.JacksonJsonDataFormat
-import org.cibseven.community.rest.client.api.ProcessInstanceApiClient
+import org.cibseven.community.rest.client.api.ProcessInstanceApi
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
 import java.text.SimpleDateFormat
@@ -40,7 +40,7 @@ class Cib7RemoteTestApplication {
   )
   @Bean
   fun remoteScheduledProcessTestHelper(
-    processInstanceApiClient: ProcessInstanceApiClient,
+    processInstanceApi: ProcessInstanceApi,
     startProcessApi: StartProcessApi,
     taskSubscriptionApi: TaskSubscriptionApi,
     userTaskDelivery: UserTaskDelivery,
@@ -50,7 +50,7 @@ class Cib7RemoteTestApplication {
     subscriptionRepository: SubscriptionRepository,
     evaluateDecisionApi: EvaluateDecisionApi,
   ): ProcessTestHelper = Cib7RemoteProcessTestHelper(
-    processInstanceApiClient = processInstanceApiClient,
+    processInstanceApi = processInstanceApi,
     startProcessApi = startProcessApi,
     taskSubscriptionApi = taskSubscriptionApi,
     userTaskDelivery = userTaskDelivery,
@@ -66,7 +66,7 @@ class Cib7RemoteTestApplication {
   )
   @Bean
   fun remoteSubscribedProcessTestHelper(
-    processInstanceApiClient: ProcessInstanceApiClient,
+    processInstanceApi: ProcessInstanceApi,
     startProcessApi: StartProcessApi,
     taskSubscriptionApi: TaskSubscriptionApi,
     userTaskDelivery: UserTaskDelivery,
@@ -76,7 +76,7 @@ class Cib7RemoteTestApplication {
     subscriptionRepository: SubscriptionRepository,
     evaluateDecisionApi: EvaluateDecisionApi,
   ): ProcessTestHelper = Cib7RemoteProcessTestHelper(
-    processInstanceApiClient = processInstanceApiClient,
+    processInstanceApi = processInstanceApi,
     startProcessApi = startProcessApi,
     taskSubscriptionApi = taskSubscriptionApi,
     userTaskDelivery = userTaskDelivery,
