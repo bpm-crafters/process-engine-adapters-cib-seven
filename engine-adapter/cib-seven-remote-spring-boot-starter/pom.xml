@@ -61,13 +61,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Subscription-based service task delivery via the official external task client (Spring Boot 4 starter) -->
-    <dependency>
-      <groupId>org.cibseven.bpm.springboot</groupId>
-      <artifactId>cibseven-bpm-spring-boot-starter-external-task-client-4</artifactId>
-      <version>${cibseven.version}</version>
-      <optional>true</optional>
-    </dependency>
     <!-- Plain external task client: the subscribe auto-config wires the client + service directly -->
     <dependency>
       <groupId>org.cibseven.bpm</groupId>
