@@ -10,6 +10,7 @@ import org.cibseven.community.rest.client.api.HistoricActivityInstanceApi
 import org.cibseven.community.rest.client.api.HistoricProcessInstanceApi
 import org.cibseven.community.rest.client.api.ProcessInstanceApi
 import org.cibseven.community.rest.client.dto.ActivityInstanceDto
+import org.cibseven.community.rest.client.dto.HistoricActivityInstanceDto
 import org.cibseven.community.rest.client.dto.HistoricActivityInstanceQueryDto
 import org.cibseven.community.rest.client.dto.HistoricActivityInstanceQueryDtoSortingInner
 import org.cibseven.community.rest.client.dto.HistoricActivityInstanceQueryDtoSortingInner.SortByEnum
@@ -102,6 +103,7 @@ internal class Cib7RemoteProcessTestAssertApi(
       .sorting(listOf(ascendingBy(SortByEnum.START_TIME), ascendingBy(SortByEnum.OCCURRENCE)))
     return historicActivityInstanceApi
       .queryHistoricActivityInstances(0, MAX_HISTORIC_ACTIVITIES, historicActivitiesInExecutionOrder)
+      .sortedWith(compareBy<HistoricActivityInstanceDto> { it.startTime }.thenBy(nullsLast()) { it.endTime })
       .mapNotNull { it.activityId }
   }
 
