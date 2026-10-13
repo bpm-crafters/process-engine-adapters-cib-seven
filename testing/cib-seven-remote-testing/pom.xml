@@ -63,12 +63,6 @@
       <version>${process-engine-api-testing.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.tngtech.jgiven</groupId>
-      <artifactId>jgiven-junit5</artifactId>
-      <version>${jgiven.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
