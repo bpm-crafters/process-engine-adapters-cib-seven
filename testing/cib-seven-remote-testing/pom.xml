@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+    <artifactId>process-engine-adapter-cib-seven-root</artifactId>
+    <version>2026.09.2-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>process-engine-adapter-cib-seven-remote-testing</artifactId>
+  <name>Test: CIB7 Remote Process Engine API Testing</name>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.cibseven.bpm</groupId>
+        <artifactId>cibseven-bom</artifactId>
+        <version>${cibseven.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+      <artifactId>process-engine-adapter-cib-seven-remote-spring-boot-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api-testing</groupId>
+      <artifactId>process-engine-api-testing-core</artifactId>
+      <version>${process-engine-api-testing.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cibseven.commons</groupId>
+      <artifactId>cibseven-commons-typed-values</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>${awaitility.version}</version>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api-testing</groupId>
+      <artifactId>process-engine-api-testing-jgiven</artifactId>
+      <version>${process-engine-api-testing.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api-testing</groupId>
+      <artifactId>process-engine-api-testing-contract</artifactId>
+      <version>${process-engine-api-testing.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <testResources>
+      <testResource>
+        <directory>../cib-seven-embedded-testing/src/test/resources</directory>
+      </testResource>
+    </testResources>
+  </build>
+</project>

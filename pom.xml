@@ -29,6 +29,7 @@
     <junit5.version>5.13.3</junit5.version>
     <jgiven.version>2.0.2</jgiven.version>
     <awaitility.version>4.3.0</awaitility.version>
+    <process-engine-api-testing.version>2026.10.1</process-engine-api-testing.version>
     <mockk.version>1.14.11</mockk.version>
   </properties>
 
@@ -39,6 +40,8 @@
     <module>engine-adapter/cib-seven-embedded-spring-boot-starter</module>
     <module>engine-adapter/cib-seven-remote-core</module>
     <module>engine-adapter/cib-seven-remote-spring-boot-starter</module>
+    <module>testing/cib-seven-embedded-testing</module>
+    <module>testing/cib-seven-remote-testing</module>
     <module>bom</module>
   </modules>
 
