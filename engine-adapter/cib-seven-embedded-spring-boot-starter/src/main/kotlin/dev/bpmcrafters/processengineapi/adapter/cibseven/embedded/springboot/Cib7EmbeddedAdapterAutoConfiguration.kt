@@ -18,9 +18,11 @@ import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import dev.bpmcrafters.processengineapi.correlation.SignalApi
 import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
+import dev.bpmcrafters.processengineapi.impl.task.OutcomeRecordingServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.TaskHandlerInterceptor
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
@@ -31,6 +33,7 @@ import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.RuntimeService
 import org.cibseven.bpm.engine.TaskService
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -71,8 +74,13 @@ class Cib7EmbeddedAdapterAutoConfiguration {
 
   @Bean("cib7embedded-task-subscription-api")
   @Qualifier("cib7embedded-task-subscription-api")
-  fun taskSubscriptionApi(subscriptionRepository: SubscriptionRepository): TaskSubscriptionApi = Cib7TaskSubscriptionApiImpl(
-    subscriptionRepository = subscriptionRepository
+  fun taskSubscriptionApi(
+    subscriptionRepository: SubscriptionRepository,
+    interceptors: ObjectProvider<TaskHandlerInterceptor>
+  ): TaskSubscriptionApi = Cib7TaskSubscriptionApiImpl(
+    subscriptionRepository = subscriptionRepository,
+    // ordered by @Order / Ordered, executed in this order around every task handler
+    interceptors = interceptors.orderedStream().toList()
   )
 
   @Bean("cib7embedded-correlation-api")
@@ -138,11 +146,14 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     @Qualifier("cib7embedded-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier
   ): ServiceTaskCompletionApi =
-    Cib7ServiceTaskCompletionApiImpl(
-      workerId = adapterProperties.serviceTasks.workerId,
-      externalTaskService = externalTaskService,
-      subscriptionRepository = subscriptionRepository,
-      failureRetrySupplier = failureRetrySupplier
+    // reports completions / failures as TaskHandlerOutcome to the task handler interceptors
+    OutcomeRecordingServiceTaskCompletionApi(
+      Cib7ServiceTaskCompletionApiImpl(
+        workerId = adapterProperties.serviceTasks.workerId,
+        externalTaskService = externalTaskService,
+        subscriptionRepository = subscriptionRepository,
+        failureRetrySupplier = failureRetrySupplier
+      )
     )
 
   @Bean("cib7embedded-user-task-completion-api")

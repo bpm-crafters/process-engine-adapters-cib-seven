@@ -6,6 +6,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7R
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.ConditionalOnServiceTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FailureRetrySupplier
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.OfficialClientServiceTaskCompletionApiImpl
+import dev.bpmcrafters.processengineapi.impl.task.OutcomeRecordingServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.subscribe.SubscribingServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
@@ -64,10 +65,13 @@ class OfficialClientServiceTaskAutoConfiguration {
     @Qualifier("cib7remote-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier
   ): ServiceTaskCompletionApi =
-    OfficialClientServiceTaskCompletionApiImpl(
-      externalTaskService = externalTaskService,
-      subscriptionRepository = subscriptionRepository,
-      failureRetrySupplier = failureRetrySupplier
+    // reports completions / failures as TaskHandlerOutcome to the task handler interceptors
+    OutcomeRecordingServiceTaskCompletionApi(
+      OfficialClientServiceTaskCompletionApiImpl(
+        externalTaskService = externalTaskService,
+        subscriptionRepository = subscriptionRepository,
+        failureRetrySupplier = failureRetrySupplier
+      )
     )
 
 }

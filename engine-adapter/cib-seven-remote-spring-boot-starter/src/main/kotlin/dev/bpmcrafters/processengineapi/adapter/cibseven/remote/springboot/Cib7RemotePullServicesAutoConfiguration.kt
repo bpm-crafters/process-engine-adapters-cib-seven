@@ -4,6 +4,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.CachingP
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FailureRetrySupplier
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FeignServiceTaskCompletionApiImpl
+import dev.bpmcrafters.processengineapi.impl.task.OutcomeRecordingServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.UserTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullServiceTaskDeliveryMetrics
@@ -124,12 +125,15 @@ class Cib7RemotePullServicesAutoConfiguration {
     failureRetrySupplier: FailureRetrySupplier,
     valueMapper: ValueMapper
   ): ServiceTaskCompletionApi =
-    FeignServiceTaskCompletionApiImpl(
-      workerId = c7AdapterProperties.serviceTasks.workerId,
-      externalTaskApi = externalTaskApi,
-      subscriptionRepository = subscriptionRepository,
-      failureRetrySupplier = failureRetrySupplier,
-      valueMapper = valueMapper
+    // reports completions / failures as TaskHandlerOutcome to the task handler interceptors
+    OutcomeRecordingServiceTaskCompletionApi(
+      FeignServiceTaskCompletionApiImpl(
+        workerId = c7AdapterProperties.serviceTasks.workerId,
+        externalTaskApi = externalTaskApi,
+        subscriptionRepository = subscriptionRepository,
+        failureRetrySupplier = failureRetrySupplier,
+        valueMapper = valueMapper
+      )
     )
 
   @Bean("cib7remote-process-definition-meta-data-resolver")

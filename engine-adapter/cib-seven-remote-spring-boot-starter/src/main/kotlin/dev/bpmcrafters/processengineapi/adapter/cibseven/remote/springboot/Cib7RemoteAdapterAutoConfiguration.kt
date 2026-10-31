@@ -21,6 +21,7 @@ import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
+import dev.bpmcrafters.processengineapi.task.TaskHandlerInterceptor
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.MeterRegistry
@@ -30,6 +31,7 @@ import org.cibseven.community.rest.client.api.*
 import org.cibseven.community.rest.client.api.SignalApi as SignalRestApi
 import org.cibseven.community.rest.client.invoker.ApiClient
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -54,8 +56,13 @@ class Cib7RemoteAdapterAutoConfiguration {
 
   @Bean("cib7remote-task-subscription-api")
   @Qualifier("cib7remote-task-subscription-api")
-  fun taskSubscriptionApi(subscriptionRepository: SubscriptionRepository): TaskSubscriptionApi = TaskSubscriptionApiImpl(
-    subscriptionRepository = subscriptionRepository
+  fun taskSubscriptionApi(
+    subscriptionRepository: SubscriptionRepository,
+    interceptors: ObjectProvider<TaskHandlerInterceptor>
+  ): TaskSubscriptionApi = TaskSubscriptionApiImpl(
+    subscriptionRepository = subscriptionRepository,
+    // ordered by @Order / Ordered, executed in this order around every task handler
+    interceptors = interceptors.orderedStream().toList()
   )
 
   @Bean("cib7remote-start-process-api")
