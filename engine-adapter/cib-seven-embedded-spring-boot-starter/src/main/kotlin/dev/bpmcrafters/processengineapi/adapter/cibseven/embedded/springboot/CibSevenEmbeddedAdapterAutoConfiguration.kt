@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.ThreadContextClassLoaderThreadFactory
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
@@ -14,6 +16,9 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completio
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.completion.LinearMemoryFailureRetrySupplier
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.modification.CibSevenUserTaskModificationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.subscription.CibSevenTaskSubscriptionApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecorator
 import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import dev.bpmcrafters.processengineapi.correlation.SignalApi
 import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
@@ -31,15 +36,13 @@ import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.RuntimeService
 import org.cibseven.bpm.engine.TaskService
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -139,13 +142,16 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-failure-retry-supplier")
-    failureRetrySupplier: FailureRetrySupplier
+    failureRetrySupplier: FailureRetrySupplier,
+    @Qualifier("cib-seven-embedded-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder
   ): ServiceTaskCompletionApi =
     CibSevenServiceTaskCompletionApiImpl(
       workerId = adapterProperties.serviceTasks.workerId,
       externalTaskService = externalTaskService,
       subscriptionRepository = subscriptionRepository,
-      failureRetrySupplier = failureRetrySupplier
+      failureRetrySupplier = failureRetrySupplier,
+      outcomeRecorder = outcomeRecorder
     )
 
   @Bean("cib-seven-embedded-user-task-completion-api")
@@ -160,20 +166,28 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
     )
 
   /**
-   * Creates a default fixed thread pool for 10 threads used for process engine worker executions.
+   * Creates the pool that decides how and how many service tasks run: ten platform threads, at most ten tasks.
    * This one is used for pull-strategies only.
+   * Declare your own [ServiceTaskWorkerPool] bean with this name to change executor and limit, e.g.
+   * `ServiceTaskWorkerPool(Executors.newVirtualThreadPerTaskExecutor(), maxConcurrentTasks = 200)`.
    */
-  @Bean("cib-seven-embedded-service-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-embedded-service-task-worker-executor")
-  @Qualifier("cib-seven-embedded-service-task-worker-executor")
-  fun serviceTaskWorkerExecutor(): ThreadPoolExecutor = ThreadPoolExecutor(
-    /* corePoolSize = */ 10,
-    /* maximumPoolSize = */ 10,
-    /* keepAliveTime = */ 0L,
-    /* unit = */ TimeUnit.MILLISECONDS,
-    /* workQueue = */ LinkedBlockingQueue(),
-    /* threadFactory = */ ThreadContextClassLoaderThreadFactory(CibSevenEmbeddedAdapterAutoConfiguration::class.java.classLoader),
+  @Bean("cib-seven-embedded-service-task-worker-pool")
+  @ConditionalOnMissingQualifiedBean(beanClass = ServiceTaskWorkerPool::class, qualifier = "cib-seven-embedded-service-task-worker-pool")
+  @Qualifier("cib-seven-embedded-service-task-worker-pool")
+  fun serviceTaskWorkerPool(): ServiceTaskWorkerPool = ServiceTaskWorkerPool.withPlatformThreads(
+    threads = 10,
+    threadFactory = ThreadContextClassLoaderThreadFactory(CibSevenEmbeddedAdapterAutoConfiguration::class.java.classLoader),
   )
+
+  @Bean("cib-seven-embedded-task-outcome-recorder")
+  @Qualifier("cib-seven-embedded-task-outcome-recorder")
+  fun taskOutcomeRecorder(): TaskOutcomeRecorder = TaskOutcomeRecorder()
+
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
+  @Bean("cib-seven-embedded-task-execution-decoration")
+  @Qualifier("cib-seven-embedded-task-execution-decoration")
+  fun taskExecutionDecoration(decorators: ObjectProvider<TaskExecutionDecorator>): TaskExecutionDecoration =
+    TaskExecutionDecoration(decorators.orderedStream().toList())
 
   /**
    * Creates a default fixed thread pool for 10 threads used for process engine worker executions.

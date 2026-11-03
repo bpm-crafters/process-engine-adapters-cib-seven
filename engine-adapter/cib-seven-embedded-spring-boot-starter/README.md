@@ -95,7 +95,6 @@ dev:
             delivery-strategy: embedded_scheduled
             worker-id: my-worker-id        # Required: unique worker identifier
             lock-time-in-seconds: 10       # How long to lock fetched tasks
-            max-task-count: 100            # Max tasks to fetch per poll
             retry-timeout-in-seconds: 30   # Retry timeout for failed tasks
             schedule-delivery-fixed-rate-in-seconds: 10  # Polling interval
             execute-initial-pull-on-startup: true        # Pull tasks on startup
@@ -105,6 +104,15 @@ dev:
             delivery-strategy: embedded_scheduled
             schedule-delivery-fixed-rate-in-seconds: 5   # Polling interval
             execute-initial-pull-on-startup: true        # Pull tasks on startup
+```
+
+The bean `cib-seven-embedded-service-task-worker-pool` (`ServiceTaskWorkerPool`) decides how and how many service tasks run.
+By default it runs them on ten platform threads, at most ten tasks are locked and running at once.
+Declare your own `ServiceTaskWorkerPool` bean with this name to change executor and limit:
+
+```kotlin
+@Bean("cib-seven-embedded-service-task-worker-pool")
+fun serviceTaskWorkerPool() = ServiceTaskWorkerPool(Executors.newVirtualThreadPerTaskExecutor(), maxConcurrentTasks = 200)
 ```
 
 ### Minimal Configuration

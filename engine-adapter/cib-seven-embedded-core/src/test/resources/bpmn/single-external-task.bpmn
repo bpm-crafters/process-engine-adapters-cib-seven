@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_single_external_task" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="single-external-task" name="Single External Task" isExecutable="true" camunda:historyTimeToLive="1">
+    <bpmn:startEvent id="started">
+      <bpmn:outgoing>flow-to-task</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="flow-to-task" sourceRef="started" targetRef="external-task" />
+    <bpmn:serviceTask id="external-task" camunda:type="external" camunda:topic="single-external-task-topic">
+      <bpmn:incoming>flow-to-task</bpmn:incoming>
+      <bpmn:outgoing>flow-to-end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flow-to-end" sourceRef="external-task" targetRef="finished" />
+    <bpmn:endEvent id="finished">
+      <bpmn:incoming>flow-to-end</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

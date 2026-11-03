@@ -1,8 +1,12 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial.CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding.Companion.ORDER
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.engine.ExternalTaskService
@@ -11,7 +15,6 @@ import org.springframework.context.event.EventListener
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.scheduling.annotation.Async
-import java.util.concurrent.ExecutorService
 
 private val logger = KotlinLogging.logger {}
 
@@ -21,11 +24,14 @@ private val logger = KotlinLogging.logger {}
  * execute an initial pull (e.g. for event-based delivery)
  */
 @Order(ORDER)
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 open class CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding(
   externalTaskService: ExternalTaskService,
   subscriptionRepository: SubscriptionRepository,
   adapterProperties: CibSevenEmbeddedAdapterProperties,
-  executorService: ExecutorService
+  workerPool: ServiceTaskWorkerPool,
+  outcomeRecorder: TaskOutcomeRecorder,
+  decoration: TaskExecutionDecoration
 ) {
   companion object {
     const val ORDER = Ordered.HIGHEST_PRECEDENCE + 1000
@@ -36,11 +42,12 @@ open class CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding(
     subscriptionRepository = subscriptionRepository,
     externalTaskService = externalTaskService,
     workerId = adapterProperties.serviceTasks.workerId,
-    maxTasks = adapterProperties.serviceTasks.maxTaskCount,
     lockDurationInSeconds = adapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = adapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = adapterProperties.serviceTasks.retries,
-    executorService = executorService,
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration,
   )
 
   @EventListener

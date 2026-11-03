@@ -1,10 +1,14 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.*
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.CibSevenEmbeddedAdapterEnabledCondition
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.CibSevenEmbeddedAdapterUserTaskInitialPullEnabledCondition
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.CibSevenEmbeddedAdapterServiceTaskInitialPullEnabledCondition
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
@@ -53,6 +57,7 @@ class CibSevenEmbeddedInitialPullOnStartupAutoConfiguration {
     executorService = executorService
   )
 
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   @Bean("cib-seven-embedded-service-task-initial-pull")
   @Qualifier("cib-seven-embedded-service-task-initial-pull")
   @Conditional(CibSevenEmbeddedAdapterServiceTaskInitialPullEnabledCondition::class)
@@ -60,12 +65,18 @@ class CibSevenEmbeddedInitialPullOnStartupAutoConfiguration {
     externalTaskService: ExternalTaskService,
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
-    @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    @Qualifier("cib-seven-embedded-service-task-worker-pool")
+    workerPool: ServiceTaskWorkerPool,
+    @Qualifier("cib-seven-embedded-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
+    @Qualifier("cib-seven-embedded-task-execution-decoration")
+    decoration: TaskExecutionDecoration
   ) = CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding(
     externalTaskService = externalTaskService,
     subscriptionRepository = subscriptionRepository,
     adapterProperties = adapterProperties,
-    executorService = executorService
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration
   )
 }

@@ -74,10 +74,6 @@ class CibSevenEmbeddedAdapterProperties(
      */
     val workerId: String,
     /**
-     * Max count of external tasks to fetch. Defaults to 100.
-     */
-    val maxTaskCount: Int = 100,
-    /**
      * Time in seconds to lock external task. Default to 10.
      */
     val lockTimeInSeconds: Long = 10L,

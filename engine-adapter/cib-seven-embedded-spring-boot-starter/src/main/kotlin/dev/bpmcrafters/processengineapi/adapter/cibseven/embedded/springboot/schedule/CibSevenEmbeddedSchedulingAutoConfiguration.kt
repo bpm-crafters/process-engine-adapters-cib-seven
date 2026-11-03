@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.schedule
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterAutoConfiguration
@@ -11,6 +13,8 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.con
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnUserTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.toolisticon.spring.condition.ConditionalOnMissingQualifiedBean
@@ -74,6 +78,7 @@ class CibSevenEmbeddedSchedulingAutoConfiguration {
     return threadPoolTaskSchedulerBuilder.build()
   }
 
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   @Bean("cib-seven-embedded-service-task-delivery")
   @Qualifier("cib-seven-embedded-service-task-delivery")
   @ConditionalOnServiceTaskDeliveryStrategy(
@@ -83,17 +88,22 @@ class CibSevenEmbeddedSchedulingAutoConfiguration {
     subscriptionRepository: SubscriptionRepository,
     externalTaskService: ExternalTaskService,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
-    @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    @Qualifier("cib-seven-embedded-service-task-worker-pool")
+    workerPool: ServiceTaskWorkerPool,
+    @Qualifier("cib-seven-embedded-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
+    @Qualifier("cib-seven-embedded-task-execution-decoration")
+    decoration: TaskExecutionDecoration
   ) = EmbeddedPullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     externalTaskService = externalTaskService,
     workerId = adapterProperties.serviceTasks.workerId,
-    maxTasks = adapterProperties.serviceTasks.maxTaskCount,
     lockDurationInSeconds = adapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = adapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = adapterProperties.serviceTasks.retries,
-    executorService = executorService
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration
   )
 
   @Bean("cib-seven-embedded-process-definition-meta-data-resolver")

@@ -1,7 +1,10 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion
 
 import dev.bpmcrafters.processengineapi.Empty
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskOutcome
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.*
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -17,12 +20,14 @@ private val logger = KotlinLogging.logger {}
 /**
  * Strategy for completing external tasks using Feign REST ExternalTaskApi.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class FeignServiceTaskCompletionApiImpl(
   private val workerId: String,
   private val externalTaskApi: ExternalTaskApi,
   private val subscriptionRepository: SubscriptionRepository,
   private val failureRetrySupplier: FailureRetrySupplier,
-  private val valueMapper: ValueMapper
+  private val valueMapper: ValueMapper,
+  private val outcomeRecorder: TaskOutcomeRecorder,
 ) : ServiceTaskCompletionApi {
 
   override fun completeTask(cmd: CompleteTaskCmd): CompletableFuture<Empty> {
@@ -35,6 +40,7 @@ class FeignServiceTaskCompletionApiImpl(
           this.workerId = this@FeignServiceTaskCompletionApiImpl.workerId
         }
     )
+    outcomeRecorder.record(cmd.taskId, TaskOutcome.Completed)
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
@@ -55,6 +61,7 @@ class FeignServiceTaskCompletionApiImpl(
         this.variables = valueMapper.mapValues(cmd.get())
       }
     )
+    outcomeRecorder.record(cmd.taskId, TaskOutcome.BpmnError(cmd.errorCode))
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))
@@ -68,16 +75,19 @@ class FeignServiceTaskCompletionApiImpl(
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-010: failing service task ${cmd.taskId}." }
     val (retries, retryTimeoutInSeconds) = failureRetrySupplier.apply(cmd.taskId)
     val retryTimeoutInMillis = cmd.retryBackoff?.toMillis() ?: retryTimeoutInSeconds * 1000
+    val remainingRetries = cmd.retryCount ?: retries
     externalTaskApi.handleFailure(
       cmd.taskId,
       ExternalTaskFailureDto().apply {
         this.workerId = this@FeignServiceTaskCompletionApiImpl.workerId
-        this.retries = cmd.retryCount ?: retries
+        this.retries = remainingRetries
         this.retryTimeout = retryTimeoutInMillis
         this.errorDetails = cmd.errorDetails
         this.errorMessage = cmd.reason
       }
     )
+    val failedOutcome = TaskOutcome.Failed(cmd.reason, remainingRetries)
+    outcomeRecorder.record(cmd.taskId, failedOutcome)
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(TaskInformation(cmd.taskId, emptyMap()).withReason(TaskInformation.COMPLETE))

@@ -1,6 +1,11 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.ThreadContextClassLoaderThreadFactory
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecorator
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.serialization.AdapterDataConverter
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation.SignalApiImpl
@@ -30,6 +35,7 @@ import org.cibseven.community.rest.client.api.*
 import org.cibseven.community.rest.client.api.SignalApi as SignalRestApi
 import org.cibseven.community.rest.client.invoker.ApiClient
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -111,20 +117,28 @@ class CibSevenRemoteAdapterAutoConfiguration {
   fun subscriptionRepository(): SubscriptionRepository = InMemSubscriptionRepository()
 
   /**
-   * Creates a default fixed thread pool used for external task worker executions.
-   * This one is used for pull-strategies only.
+   * Runs the external tasks of all pull deliveries and limits how many of them are locked and running at the same time.
+   * Declare your own [ServiceTaskWorkerPool] bean with this name to change executor and limit, e.g.
+   * `ServiceTaskWorkerPool(Executors.newVirtualThreadPerTaskExecutor(), maxConcurrentTasks = 200)`.
    */
-  @Bean("cib-seven-remote-service-task-worker-executor")
-  @Qualifier("cib-seven-remote-service-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ThreadPoolExecutor::class, qualifier = "cib-seven-remote-service-task-worker-executor")
-  fun serviceTaskWorkerExecutor(c7AdapterProperties: CibSevenRemoteAdapterProperties): ThreadPoolExecutor =
-    ThreadPoolExecutor(
-      c7AdapterProperties.serviceTasks.workerThreadPoolSize,
-      c7AdapterProperties.serviceTasks.workerThreadPoolSize,
-      0L, TimeUnit.MILLISECONDS,
-      LinkedBlockingQueue(c7AdapterProperties.serviceTasks.workerThreadPoolQueueCapacity),
+  @Bean("cib-seven-remote-service-task-worker-pool")
+  @Qualifier("cib-seven-remote-service-task-worker-pool")
+  @ConditionalOnMissingQualifiedBean(beanClass = ServiceTaskWorkerPool::class, qualifier = "cib-seven-remote-service-task-worker-pool")
+  fun serviceTaskWorkerPool(): ServiceTaskWorkerPool =
+    ServiceTaskWorkerPool.withPlatformThreads(
+      10,
       ThreadContextClassLoaderThreadFactory(CibSevenRemoteAdapterAutoConfiguration::class.java.classLoader),
     )
+
+  @Bean("cib-seven-remote-task-outcome-recorder")
+  @Qualifier("cib-seven-remote-task-outcome-recorder")
+  fun taskOutcomeRecorder(): TaskOutcomeRecorder = TaskOutcomeRecorder()
+
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
+  @Bean("cib-seven-remote-task-execution-decoration")
+  @Qualifier("cib-seven-remote-task-execution-decoration")
+  fun taskExecutionDecoration(decorators: ObjectProvider<TaskExecutionDecorator>): TaskExecutionDecoration =
+    TaskExecutionDecoration(decorators.orderedStream().toList())
 
   @Bean
   @ConditionalOnMissingBean

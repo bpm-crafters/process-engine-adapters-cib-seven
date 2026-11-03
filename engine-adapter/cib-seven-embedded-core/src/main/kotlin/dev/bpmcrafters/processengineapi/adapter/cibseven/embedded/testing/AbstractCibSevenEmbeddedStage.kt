@@ -3,6 +3,8 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.testing
 import com.tngtech.jgiven.Stage
 import com.tngtech.jgiven.annotation.*
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.deploy.DeploymentApiImpl
@@ -16,6 +18,8 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.modification.CibSevenUserTaskModificationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.subscription.CibSevenTaskSubscriptionApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import dev.bpmcrafters.processengineapi.correlation.SignalApi
 import dev.bpmcrafters.processengineapi.deploy.DeployBundleCommand
@@ -107,6 +111,7 @@ abstract class AbstractCibSevenEmbeddedStage<SUBTYPE : AbstractCibSevenEmbeddedS
    * @param processEngineServices either process engine or process engine extension.
    * @param restrictions list of restrictions used in task subscription API. Usually, contains a restriction to the process definition key. Please use `CommonRestrictions` builder.
    */
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   open fun initializeEngine(
     processEngineServices: ProcessEngineServices,
     restrictions: Map<String, String>
@@ -120,6 +125,7 @@ abstract class AbstractCibSevenEmbeddedStage<SUBTYPE : AbstractCibSevenEmbeddedS
     this.workerId = self().javaClass.simpleName
 
     val subscriptionRepository = InMemSubscriptionRepository()
+    val outcomeRecorder = TaskOutcomeRecorder()
     val commandExecutor = EngineCommandExecutor(Executor { it.run() })
     val processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(
       repositoryService = processEngineServices.repositoryService
@@ -137,7 +143,7 @@ abstract class AbstractCibSevenEmbeddedStage<SUBTYPE : AbstractCibSevenEmbeddedS
     )
     userTaskCompletionApi = CibSevenUserTaskCompletionApiImpl(processEngineServices.taskService, subscriptionRepository)
     serviceTaskCompletionApi = CibSevenServiceTaskCompletionApiImpl(
-      workerId, processEngineServices.externalTaskService, subscriptionRepository, LinearMemoryFailureRetrySupplier(3, 3L)
+      workerId, processEngineServices.externalTaskService, subscriptionRepository, LinearMemoryFailureRetrySupplier(3, 3L), outcomeRecorder
     )
     embeddedPullUserTaskDelivery = EmbeddedPullUserTaskDelivery(
       taskService = processEngineServices.taskService,
@@ -146,14 +152,16 @@ abstract class AbstractCibSevenEmbeddedStage<SUBTYPE : AbstractCibSevenEmbeddedS
       executorService = Executors.newFixedThreadPool(1)
     )
 
+    val workerPoolOnCallingThread = ServiceTaskWorkerPool(Executor { it.run() }, maxConcurrentTasks = 100)
     embeddedPullServiceTaskDelivery = EmbeddedPullServiceTaskDelivery(
       processEngineServices.externalTaskService,
       workerId, subscriptionRepository,
-      Int.MAX_VALUE,
       1000,
       1000,
       1,
-      Executors.newFixedThreadPool(1)
+      workerPoolOnCallingThread,
+      outcomeRecorder,
+      TaskExecutionDecoration.NONE
     )
 
     taskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(

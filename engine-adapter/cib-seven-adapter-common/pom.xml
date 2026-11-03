@@ -11,4 +11,18 @@
 
   <artifactId>process-engine-adapter-cib-seven-adapter-common</artifactId>
   <name>Adapter: CIB7 Adapter Common</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.bpm-crafters.process-engine-api</groupId>
+      <artifactId>process-engine-api</artifactId>
+      <version>${process-engine-api.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility-kotlin</artifactId>
+      <version>${awaitility.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

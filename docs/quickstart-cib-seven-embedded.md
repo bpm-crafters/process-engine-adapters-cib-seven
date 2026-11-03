@@ -39,6 +39,8 @@ dev:
             deploy-only-on-change: false
 ```
 
+How many service tasks run at once, on which executor, and task execution decorators are described in [Service task delivery](service-task-delivery.md).
+
 ## Deployment
 
 | Key                            | Value             | Description                                                                                                                                                                |

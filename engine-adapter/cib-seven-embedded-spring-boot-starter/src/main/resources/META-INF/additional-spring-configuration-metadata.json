@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "name": "dev.bpm-crafters.process-api.adapter.cib-seven-embedded.service-tasks.max-task-count",
+      "type": "java.lang.Integer",
+      "description": "Removed, the fetch size follows the free worker capacity.",
+      "deprecation": {
+        "level": "error",
+        "reason": "Declare a ServiceTaskWorkerPool bean named cib-seven-embedded-service-task-worker-pool to change executor and limit."
+      }
+    }
+  ]
+}

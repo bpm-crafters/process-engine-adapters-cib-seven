@@ -1,5 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FailureRetrySupplier
@@ -37,7 +41,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.ThreadPoolExecutor
 
 private val logger = KotlinLogging.logger {}
 
@@ -81,6 +84,7 @@ class CibSevenRemotePullServicesAutoConfiguration {
     return threadPoolTaskSchedulerBuilder.build()
   }
 
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   @Bean("cib-seven-remote-service-task-delivery")
   @Qualifier("cib-seven-remote-service-task-delivery")
   @ConditionalOnServiceTaskDeliveryStrategy(
@@ -92,18 +96,23 @@ class CibSevenRemotePullServicesAutoConfiguration {
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: CibSevenRemoteAdapterProperties,
-    @Qualifier("cib-seven-remote-service-task-worker-executor")
-    executor: ThreadPoolExecutor,
+    @Qualifier("cib-seven-remote-service-task-worker-pool")
+    workerPool: ServiceTaskWorkerPool,
+    @Qualifier("cib-seven-remote-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
+    @Qualifier("cib-seven-remote-task-execution-decoration")
+    decoration: TaskExecutionDecoration,
     valueMapper: ValueMapper,
     metrics: PullServiceTaskDeliveryMetrics
   ) = PullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     workerId = c7AdapterProperties.serviceTasks.workerId,
-    maxTasks = c7AdapterProperties.serviceTasks.maxTaskCount,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = c7AdapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = c7AdapterProperties.serviceTasks.retries,
-    executor = executor,
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration,
     externalTaskApi = externalTaskApi,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     valueMapper = valueMapper,
@@ -122,14 +131,17 @@ class CibSevenRemotePullServicesAutoConfiguration {
     c7AdapterProperties: CibSevenRemoteAdapterProperties,
     @Qualifier("cib-seven-remote-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier,
-    valueMapper: ValueMapper
+    valueMapper: ValueMapper,
+    @Qualifier("cib-seven-remote-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
   ): ServiceTaskCompletionApi =
     FeignServiceTaskCompletionApiImpl(
       workerId = c7AdapterProperties.serviceTasks.workerId,
       externalTaskApi = externalTaskApi,
       subscriptionRepository = subscriptionRepository,
       failureRetrySupplier = failureRetrySupplier,
-      valueMapper = valueMapper
+      valueMapper = valueMapper,
+      outcomeRecorder = outcomeRecorder,
     )
 
   @Bean("cib-seven-remote-process-definition-meta-data-resolver")

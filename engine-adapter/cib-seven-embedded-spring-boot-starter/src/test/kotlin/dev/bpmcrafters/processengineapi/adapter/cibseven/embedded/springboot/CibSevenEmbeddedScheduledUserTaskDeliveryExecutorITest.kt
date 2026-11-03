@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
 import dev.bpmcrafters.processengineapi.task.SubscribeForTaskCmd
 import dev.bpmcrafters.processengineapi.task.TaskType
 import dev.bpmcrafters.processengineapi.test.ProcessTestHelper
@@ -27,9 +28,9 @@ class CibSevenEmbeddedScheduledUserTaskDeliveryExecutorITest(
   @TestConfiguration(proxyBeanMethods = false)
   class NamedExecutorsConfiguration {
 
-    @Bean("cib-seven-embedded-service-task-worker-executor")
-    @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    fun serviceTaskWorkerExecutor(): ExecutorService = namedExecutor("SERVICE-TASK-EXECUTOR")
+    @Bean("cib-seven-embedded-service-task-worker-pool")
+    @Qualifier("cib-seven-embedded-service-task-worker-pool")
+    fun serviceTaskWorkerPool(): ServiceTaskWorkerPool = ServiceTaskWorkerPool(namedExecutor("SERVICE-TASK-EXECUTOR"), maxConcurrentTasks = 2)
 
     @Bean("cib-seven-embedded-user-task-worker-executor")
     @Qualifier("cib-seven-embedded-user-task-worker-executor")

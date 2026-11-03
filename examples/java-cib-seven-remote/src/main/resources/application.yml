@@ -27,7 +27,6 @@ dev:
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 10
             retries: 3
-            max-task-count: 100
             retry-timeout-in-seconds: 30
           user-tasks:
             delivery-strategy: remote_scheduled

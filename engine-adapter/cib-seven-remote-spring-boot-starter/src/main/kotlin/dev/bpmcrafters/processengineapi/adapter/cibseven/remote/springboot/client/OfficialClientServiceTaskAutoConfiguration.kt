@@ -1,5 +1,8 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.client
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterAutoConfiguration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SUBSCRIBED
@@ -43,17 +46,24 @@ class OfficialClientServiceTaskAutoConfiguration {
     return ExternalTaskServiceImpl(externalTaskClient.topicSubscriptionManager.engineClient)
   }
 
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   @Bean(name = ["cib-seven-remote-service-task-delivery"], initMethod = "subscribe", destroyMethod = "unsubscribe")
   fun subscribingClientExternalTaskDelivery(
     subscriptionRepository: SubscriptionRepository,
     externalTaskClient: ExternalTaskClient,
-    c7AdapterProperties: CibSevenRemoteAdapterProperties
+    c7AdapterProperties: CibSevenRemoteAdapterProperties,
+    @Qualifier("cib-seven-remote-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
+    @Qualifier("cib-seven-remote-task-execution-decoration")
+    decoration: TaskExecutionDecoration,
   ) = SubscribingServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,
     externalTaskClient = externalTaskClient,
     retryTimeoutInSeconds = c7AdapterProperties.serviceTasks.retryTimeoutInSeconds,
-    retries = c7AdapterProperties.serviceTasks.retries
+    retries = c7AdapterProperties.serviceTasks.retries,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration,
   )
 
   @Bean("cib-seven-remote-service-task-completion-api")
@@ -62,12 +72,15 @@ class OfficialClientServiceTaskAutoConfiguration {
     externalTaskService: ExternalTaskService,
     subscriptionRepository: SubscriptionRepository,
     @Qualifier("cib-seven-remote-failure-retry-supplier")
-    failureRetrySupplier: FailureRetrySupplier
+    failureRetrySupplier: FailureRetrySupplier,
+    @Qualifier("cib-seven-remote-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
   ): ServiceTaskCompletionApi =
     OfficialClientServiceTaskCompletionApiImpl(
       externalTaskService = externalTaskService,
       subscriptionRepository = subscriptionRepository,
-      failureRetrySupplier = failureRetrySupplier
+      failureRetrySupplier = failureRetrySupplier,
+      outcomeRecorder = outcomeRecorder,
     )
 
 }
