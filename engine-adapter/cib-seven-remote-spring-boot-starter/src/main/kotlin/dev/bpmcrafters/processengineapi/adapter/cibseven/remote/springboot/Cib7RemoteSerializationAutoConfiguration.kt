@@ -20,14 +20,14 @@ import org.springframework.context.annotation.Bean
 @AutoConfiguration(before = [Cib7RemoteAdapterAutoConfiguration::class])
 class Cib7RemoteSerializationAutoConfiguration {
 
-  @Bean("cib7remote-object-mapper")
-  @Qualifier("cib7remote-object-mapper")
-  @ConditionalOnMissingBean(name = ["cib7remote-object-mapper"])
+  @Bean("cib-seven-remote-object-mapper")
+  @Qualifier("cib-seven-remote-object-mapper")
+  @ConditionalOnMissingBean(name = ["cib-seven-remote-object-mapper"])
   fun cib7RemoteObjectMapper(): ObjectMapper =
     JsonMapper.builder().addModule(JavaTimeModule()).build()
 
   @Bean
   @ConditionalOnMissingBean(AdapterDataConverter::class)
-  fun adapterDataConverter(@Qualifier("cib7remote-object-mapper") objectMapper: ObjectMapper): AdapterDataConverter =
+  fun adapterDataConverter(@Qualifier("cib-seven-remote-object-mapper") objectMapper: ObjectMapper): AdapterDataConverter =
     Jackson2AdapterDataConverter(objectMapper)
 }

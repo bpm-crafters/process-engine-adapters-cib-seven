@@ -52,14 +52,14 @@ class Cib7RemoteAdapterAutoConfiguration {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-200: Configuration applied." }
   }
 
-  @Bean("cib7remote-task-subscription-api")
-  @Qualifier("cib7remote-task-subscription-api")
+  @Bean("cib-seven-remote-task-subscription-api")
+  @Qualifier("cib-seven-remote-task-subscription-api")
   fun taskSubscriptionApi(subscriptionRepository: SubscriptionRepository): TaskSubscriptionApi = TaskSubscriptionApiImpl(
     subscriptionRepository = subscriptionRepository
   )
 
-  @Bean("cib7remote-start-process-api")
-  @Qualifier("cib7remote-start-process-api")
+  @Bean("cib-seven-remote-start-process-api")
+  @Qualifier("cib-seven-remote-start-process-api")
   fun startProcessApi(
     processDefinitionApi: ProcessDefinitionApi,
     messageApi: MessageApi,
@@ -74,28 +74,28 @@ class Cib7RemoteAdapterAutoConfiguration {
     valueMapper = valueMapper
   )
 
-  @Bean("cib7remote-correlation-api")
-  @Qualifier("cib7remote-correlation-api")
+  @Bean("cib-seven-remote-correlation-api")
+  @Qualifier("cib-seven-remote-correlation-api")
   fun correlationApi(messageApi: MessageApi, valueMapper: ValueMapper): CorrelationApi = CorrelationApiImpl(
     messageApi = messageApi,
     valueMapper = valueMapper
   )
 
-  @Bean("cib7remote-signal-api")
-  @Qualifier("cib7remote-signal-api")
+  @Bean("cib-seven-remote-signal-api")
+  @Qualifier("cib-seven-remote-signal-api")
   fun signalApi(signalApi: SignalRestApi, valueMapper: ValueMapper): SignalApi = SignalApiImpl(
     signalApi = signalApi,
     valueMapper = valueMapper
   )
 
-  @Bean("cib7remote-deploy-api")
-  @Qualifier("cib7remote-deploy-api")
+  @Bean("cib-seven-remote-deploy-api")
+  @Qualifier("cib-seven-remote-deploy-api")
   fun deployApi(apiClient: ApiClient): DeploymentApi = DeploymentApiImpl(
     apiClient = apiClient
   )
 
-  @Bean("cib7remote-evaluate-decision-api")
-  @Qualifier("cib7remote-evaluate-decision-api")
+  @Bean("cib-seven-remote-evaluate-decision-api")
+  @Qualifier("cib-seven-remote-evaluate-decision-api")
   fun evaluateDecisionApi(decisionDefinitionApi: DecisionDefinitionApi, valueMapper: ValueMapper,
                           dataConverter: AdapterDataConverter): EvaluateDecisionApi = EvaluateDecisionApiImpl(
     decisionDefinitionApi = decisionDefinitionApi,
@@ -114,9 +114,9 @@ class Cib7RemoteAdapterAutoConfiguration {
    * Creates a default fixed thread pool used for external task worker executions.
    * This one is used for pull-strategies only.
    */
-  @Bean("cib7remote-service-task-worker-executor")
-  @Qualifier("cib7remote-service-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ThreadPoolExecutor::class, qualifier = "cib7remote-service-task-worker-executor")
+  @Bean("cib-seven-remote-service-task-worker-executor")
+  @Qualifier("cib-seven-remote-service-task-worker-executor")
+  @ConditionalOnMissingQualifiedBean(beanClass = ThreadPoolExecutor::class, qualifier = "cib-seven-remote-service-task-worker-executor")
   fun serviceTaskWorkerExecutor(c7AdapterProperties: Cib7RemoteAdapterProperties): ThreadPoolExecutor =
     ThreadPoolExecutor(
       c7AdapterProperties.serviceTasks.workerThreadPoolSize,
@@ -141,9 +141,9 @@ class Cib7RemoteAdapterAutoConfiguration {
    * Creates a default fixed thread pool for 10 threads used for process engine worker executions.
    * This one is used for pull-strategies only.
    */
-  @Bean("cib7remote-user-task-worker-executor")
-  @Qualifier("cib7remote-user-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib7remote-user-task-worker-executor")
+  @Bean("cib-seven-remote-user-task-worker-executor")
+  @Qualifier("cib-seven-remote-user-task-worker-executor")
+  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-remote-user-task-worker-executor")
   fun userTaskWorkerExecutor(): ExecutorService = Executors.newFixedThreadPool(
     10,
     ThreadContextClassLoaderThreadFactory(Cib7RemoteAdapterAutoConfiguration::class.java.classLoader),
@@ -152,8 +152,8 @@ class Cib7RemoteAdapterAutoConfiguration {
   /**
    * Failure retry supplier.
    */
-  @Bean("cib7remote-failure-retry-supplier")
-  @Qualifier("cib7remote-failure-retry-supplier")
+  @Bean("cib-seven-remote-failure-retry-supplier")
+  @Qualifier("cib-seven-remote-failure-retry-supplier")
   @ConditionalOnMissingBean
   fun defaultFailureRetrySupplier(c7AdapterProperties: Cib7RemoteAdapterProperties): FailureRetrySupplier {
     return LinearMemoryFailureRetrySupplier(

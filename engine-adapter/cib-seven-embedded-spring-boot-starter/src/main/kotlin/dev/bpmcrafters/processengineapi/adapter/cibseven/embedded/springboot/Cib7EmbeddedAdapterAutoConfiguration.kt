@@ -59,8 +59,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   @ConditionalOnMissingBean
   fun engineCommandExecutor(): EngineCommandExecutor = EngineCommandExecutor()
 
-  @Bean("cib7embedded-start-process-api")
-  @Qualifier("cib7embedded-start-process-api")
+  @Bean("cib-seven-embedded-start-process-api")
+  @Qualifier("cib-seven-embedded-start-process-api")
   fun startProcessApi(
     runtimeService: RuntimeService,
     repositoryService: RepositoryService,
@@ -72,14 +72,14 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = repositoryService),
   )
 
-  @Bean("cib7embedded-task-subscription-api")
-  @Qualifier("cib7embedded-task-subscription-api")
+  @Bean("cib-seven-embedded-task-subscription-api")
+  @Qualifier("cib-seven-embedded-task-subscription-api")
   fun taskSubscriptionApi(subscriptionRepository: SubscriptionRepository): TaskSubscriptionApi = Cib7TaskSubscriptionApiImpl(
     subscriptionRepository = subscriptionRepository
   )
 
-  @Bean("cib7embedded-correlation-api")
-  @Qualifier("cib7embedded-correlation-api")
+  @Bean("cib-seven-embedded-correlation-api")
+  @Qualifier("cib-seven-embedded-correlation-api")
   fun correlationApi(
     runtimeService: RuntimeService,
     commandExecutor: EngineCommandExecutor
@@ -88,8 +88,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     commandExecutor = commandExecutor
   )
 
-  @Bean("cib7embedded-signal-api")
-  @Qualifier("cib7embedded-signal-api")
+  @Bean("cib-seven-embedded-signal-api")
+  @Qualifier("cib-seven-embedded-signal-api")
   fun signalApi(
     runtimeService: RuntimeService,
     commandExecutor: EngineCommandExecutor
@@ -98,8 +98,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     commandExecutor = commandExecutor
   )
 
-  @Bean("cib7embedded-deployment-api")
-  @Qualifier("cib7embedded-deployment-api")
+  @Bean("cib-seven-embedded-deployment-api")
+  @Qualifier("cib-seven-embedded-deployment-api")
   fun deploymentApi(
     repositoryService: RepositoryService,
     commandExecutor: EngineCommandExecutor,
@@ -110,8 +110,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     deployOnlyOnChange = properties.deployment.deployOnlyOnChange
   )
 
-  @Bean("cib7embedded-user-task-modification-api")
-  @Qualifier("cib7embedded-user-task-modification-api")
+  @Bean("cib-seven-embedded-user-task-modification-api")
+  @Qualifier("cib-seven-embedded-user-task-modification-api")
   fun userTaskModificationApi(taskService: TaskService): UserTaskModificationApi = Cib7UserTaskModificationApiImpl(
     taskService = taskService
   )
@@ -120,8 +120,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   @ConditionalOnMissingBean
   fun subscriptionRepository(): SubscriptionRepository = InMemSubscriptionRepository()
 
-  @Bean("cib7embedded-failure-retry-supplier")
-  @Qualifier("cib7embedded-failure-retry-supplier")
+  @Bean("cib-seven-embedded-failure-retry-supplier")
+  @Qualifier("cib-seven-embedded-failure-retry-supplier")
   @ConditionalOnMissingBean
   fun defaultFailureRetrySupplier(
     adapterProperties: Cib7EmbeddedAdapterProperties
@@ -132,13 +132,13 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     )
   }
 
-  @Bean("cib7embedded-service-task-completion-api")
-  @Qualifier("cib7embedded-service-task-completion-api")
+  @Bean("cib-seven-embedded-service-task-completion-api")
+  @Qualifier("cib-seven-embedded-service-task-completion-api")
   fun serviceTaskCompletionApi(
     externalTaskService: ExternalTaskService,
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: Cib7EmbeddedAdapterProperties,
-    @Qualifier("cib7embedded-failure-retry-supplier")
+    @Qualifier("cib-seven-embedded-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier
   ): ServiceTaskCompletionApi =
     Cib7ServiceTaskCompletionApiImpl(
@@ -148,8 +148,8 @@ class Cib7EmbeddedAdapterAutoConfiguration {
       failureRetrySupplier = failureRetrySupplier
     )
 
-  @Bean("cib7embedded-user-task-completion-api")
-  @Qualifier("cib7embedded-user-task-completion-api")
+  @Bean("cib-seven-embedded-user-task-completion-api")
+  @Qualifier("cib-seven-embedded-user-task-completion-api")
   fun userTaskCompletionApi(
     taskService: TaskService,
     subscriptionRepository: SubscriptionRepository
@@ -179,9 +179,9 @@ class Cib7EmbeddedAdapterAutoConfiguration {
    * Creates a default fixed thread pool for 10 threads used for process engine worker executions.
    * This one is used for pull-strategies and async event listener execution.
    */
-  @Bean("cib7embedded-user-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib7embedded-user-task-worker-executor")
-  @Qualifier("cib7embedded-user-task-worker-executor")
+  @Bean("cib-seven-embedded-user-task-worker-executor")
+  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-embedded-user-task-worker-executor")
+  @Qualifier("cib-seven-embedded-user-task-worker-executor")
   fun userTaskWorkerExecutor(): ExecutorService = Executors.newFixedThreadPool(
     10,
     ThreadContextClassLoaderThreadFactory(Cib7EmbeddedAdapterAutoConfiguration::class.java.classLoader),

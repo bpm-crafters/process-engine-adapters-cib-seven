@@ -43,8 +43,8 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-203: Configuration applied." }
   }
 
-  @Bean("cib7remote-user-task-initial-pull")
-  @Qualifier("cib7remote-user-task-initial-pull")
+  @Bean("cib-seven-remote-user-task-initial-pull")
+  @Qualifier("cib-seven-remote-user-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["user-tasks.execute-initial-pull-on-startup"])
   fun configureInitialPullForUserTaskDelivery(
     taskApi: TaskApi,
@@ -52,10 +52,10 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     taskVariableApi: TaskVariableApi,
     processDefinitionApi: ProcessDefinitionApi,
     subscriptionRepository: SubscriptionRepository,
-    @Qualifier("cib7remote-user-task-worker-executor")
+    @Qualifier("cib-seven-remote-user-task-worker-executor")
     executorService: ExecutorService,
     valueMapper: ValueMapper,
-    @Qualifier("cib7remote-process-definition-meta-data-resolver")
+    @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     c7AdapterProperties: Cib7RemoteAdapterProperties
   ) = Cib7RemoteInitialPullUserTasksDeliveryBinding(
@@ -69,17 +69,17 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     c7RemoteAdapterProperties = c7AdapterProperties
   )
 
-  @Bean("cib7remote-service-task-initial-pull")
-  @Qualifier("cib7remote-service-task-initial-pull")
+  @Bean("cib-seven-remote-service-task-initial-pull")
+  @Qualifier("cib-seven-remote-service-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["service-tasks.execute-initial-pull-on-startup"])
   fun configureInitialPullForExternalServiceTaskDelivery(
     externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
-    @Qualifier("cib7remote-service-task-worker-executor")
+    @Qualifier("cib-seven-remote-service-task-worker-executor")
     executor: ThreadPoolExecutor,
     valueMapper: ValueMapper,
-    @Qualifier("cib7remote-process-definition-meta-data-resolver")
+    @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     metrics: PullServiceTaskDeliveryMetrics,
   ) = Cib7RemoteInitialPullServiceTasksDeliveryBinding(
