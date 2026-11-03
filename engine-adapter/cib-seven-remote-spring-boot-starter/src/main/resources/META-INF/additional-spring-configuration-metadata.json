@@ -1,0 +1,28 @@
+{
+  "properties": [
+    {
+      "name": "dev.bpm-crafters.process-api.adapter.cib-seven-remote.service-tasks.max-task-count",
+      "type": "java.lang.Integer",
+      "deprecation": {
+        "level": "error",
+        "reason": "Declare a ServiceTaskWorkerPool bean named cib-seven-remote-service-task-worker-pool to change executor and limit."
+      }
+    },
+    {
+      "name": "dev.bpm-crafters.process-api.adapter.cib-seven-remote.service-tasks.worker-thread-pool-size",
+      "type": "java.lang.Integer",
+      "deprecation": {
+        "level": "error",
+        "reason": "Declare a ServiceTaskWorkerPool bean named cib-seven-remote-service-task-worker-pool to change executor and limit."
+      }
+    },
+    {
+      "name": "dev.bpm-crafters.process-api.adapter.cib-seven-remote.service-tasks.worker-thread-pool-queue-capacity",
+      "type": "java.lang.Integer",
+      "deprecation": {
+        "level": "error",
+        "reason": "Declare a ServiceTaskWorkerPool bean named cib-seven-remote-service-task-worker-pool to change executor and limit."
+      }
+    }
+  ]
+}

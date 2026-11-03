@@ -36,7 +36,6 @@ dev:
           service-tasks:
             delivery-strategy: remote_scheduled   # remote_scheduled | remote_subscribed | custom | disabled
             worker-id: remote-worker
-            max-task-count: 100
             lock-time-in-seconds: 10
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 30
@@ -45,6 +44,8 @@ dev:
             execute-initial-pull-on-startup: true
             schedule-delivery-fixed-rate-in-seconds: 30
 ```
+
+How many service tasks run at once, on which executor, and task execution decorators are described in [Service task delivery](service-task-delivery.md).
 
 ## Connection
 

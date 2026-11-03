@@ -1,7 +1,12 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskOutcome
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.RefreshableDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.ServiceTaskDelivery
@@ -22,26 +27,28 @@ import org.cibseven.community.rest.client.dto.*
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
 import java.time.Duration
 import java.time.OffsetDateTime
-import java.util.concurrent.Callable
-import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
+
+private const val EXISTENCE_QUERY_CHUNK_SIZE = 500
 
 /**
  * Delivers external tasks to subscriptions.
  * This implementation uses internal Java API and pulls tasks for delivery.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class PullServiceTaskDelivery(
   private val externalTaskApi: ExternalTaskApi,
   private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   private val workerId: String,
   private val subscriptionRepository: SubscriptionRepository,
-  private val maxTasks: Int,
   private val lockDurationInSeconds: Long,
   private val retryTimeoutInSeconds: Long,
   private val retries: Int,
-  private val executor: ThreadPoolExecutor,
+  private val workerPool: ServiceTaskWorkerPool,
+  private val outcomeRecorder: TaskOutcomeRecorder,
+  private val decoration: TaskExecutionDecoration,
   private val valueMapper: ValueMapper,
   private val deserializeOnServer: Boolean,
   private val metrics: PullServiceTaskDeliveryMetrics,
@@ -50,8 +57,8 @@ class PullServiceTaskDelivery(
   internal val stillLockedTasksGauge = AtomicInteger()
 
   init {
-    metrics.registerExecutorThreadsUsedGauge(executor::getActiveCount)
-    metrics.registerExecutorQueueCapacityGauge(executor.queue::remainingCapacity)
+    metrics.registerExecutorThreadsUsedGauge { workerPool.runningTaskCount }
+    metrics.registerExecutorQueueCapacityGauge { workerPool.freeSlotCount }
     metrics.registerStillLockedTasksGauge(stillLockedTasksGauge)
   }
 
@@ -71,84 +78,61 @@ class PullServiceTaskDelivery(
       return
     }
 
-    val tasksToFetch = maxTasks.coerceAtMost(executor.queue.remainingCapacity())
-    if (tasksToFetch == 0) {
-      logger.trace { "PROCESS-ENGINE-C7-REMOTE-041: Task executor queue is full, skipping task fetch" }
-      metrics.incrementFetchAndLockTasksSkippedCounter(QUEUE_FULL)
-      return
+    workerPool.reserve().use { reservation ->
+      val hasNoFreeSlot = reservation.slots == 0
+      if (hasNoFreeSlot) {
+        logger.trace { "PROCESS-ENGINE-C7-REMOTE-041: No free worker capacity, skipping task fetch" }
+        metrics.incrementFetchAndLockTasksSkippedCounter(QUEUE_FULL)
+        return
+      }
+      fetchAndDeliver(subscriptions, reservation)
     }
+  }
 
-    logger.trace { "PROCESS-ENGINE-C7-REMOTE-030: pulling $tasksToFetch service tasks for subscriptions: $subscriptions" }
-    val result = externalTaskApi
-      .fetchAndLock(
-        FetchExternalTasksDto().workerId(workerId).maxTasks(tasksToFetch)
-          .forSubscriptions(subscriptions)
-          .usePriority(true)
-          .sorting(
-            mutableListOf(
-              FetchExternalTasksDtoSortingInner()
-                .sortBy(FetchExternalTasksDtoSortingInner.SortByEnum.CREATE_TIME)
-                .sortOrder(FetchExternalTasksDtoSortingInner.SortOrderEnum.ASC)
-            )
-          )
-      )
-
-    val lockedTasks = result
-
+  private fun fetchAndDeliver(subscriptions: List<TaskSubscriptionHandle>, reservation: ServiceTaskWorkerPool.Reservation) {
+    val lockedTasks = fetchAndLock(subscriptions, maxTasks = reservation.slots)
     logger.trace { "PROCESS-ENGINE-C7-REMOTE-042: pulled ${lockedTasks.size} service tasks" }
     lockedTasks
       .groupBy { it.topicName }
       .forEach { (topic, tasks) -> metrics.incrementFetchedAndLockedTasksCounter(topic!!, tasks.size) }
 
-    val taskActionHandlerCallables = lockedTasks
-      .asSequence()
-      .mapNotNull { lockedTask ->
-        val subscription = subscriptions.firstOrNull { subscription -> matches(lockedTask, subscription) }
-        if (subscription != null) {
-          lockedTask to subscription
-        } else {
-          metrics.incrementDroppedTasksCounter(lockedTask.topicName!!, NO_MATCHING_SUBSCRIPTIONS)
-          null
-        }
+    lockedTasks.forEach { lockedTask ->
+      val matchingSubscription = subscriptions.firstOrNull { subscription -> matches(lockedTask, subscription) }
+      if (matchingSubscription != null) {
+        submitTask(reservation, lockedTask, matchingSubscription)
+      } else {
+        metrics.incrementDroppedTasksCounter(lockedTask.topicName!!, NO_MATCHING_SUBSCRIPTIONS)
       }
-      .map { (lockedTask, activeSubscription) -> createTaskActionHandlerCallable(lockedTask, activeSubscription) }
-      .toList()
-
-    taskActionHandlerCallables.forEach { executor.submit(it) }
+    }
   }
 
-  internal fun createTaskActionHandlerCallable(lockedTask: LockedExternalTaskDto, activeSubscription: TaskSubscriptionHandle): Callable<Unit> = Callable {
+  private fun fetchAndLock(subscriptions: List<TaskSubscriptionHandle>, maxTasks: Int): List<LockedExternalTaskDto> {
+    logger.trace { "PROCESS-ENGINE-C7-REMOTE-030: pulling $maxTasks service tasks for subscriptions: $subscriptions" }
+    val oldestFirst = FetchExternalTasksDtoSortingInner()
+      .sortBy(FetchExternalTasksDtoSortingInner.SortByEnum.CREATE_TIME)
+      .sortOrder(FetchExternalTasksDtoSortingInner.SortOrderEnum.ASC)
+    val fetchRequest = FetchExternalTasksDto().workerId(workerId).maxTasks(maxTasks)
+      .forSubscriptions(subscriptions)
+      .usePriority(true)
+      .sorting(mutableListOf(oldestFirst))
+    return externalTaskApi.fetchAndLock(fetchRequest)
+  }
+
+  private fun submitTask(reservation: ServiceTaskWorkerPool.Reservation, lockedTask: LockedExternalTaskDto, subscription: TaskSubscriptionHandle) {
+    val isSubmitted = reservation.submit(lockedTask.id!!) { executeTask(lockedTask, subscription) }
+    if (!isSubmitted) {
+      logger.debug { "PROCESS-ENGINE-C7-REMOTE-047: service task ${lockedTask.id} not started, it is already running or the executor rejected it." }
+    }
+  }
+
+  internal fun executeTask(lockedTask: LockedExternalTaskDto, activeSubscription: TaskSubscriptionHandle) {
     // make sure the task has not expired waiting in the queue for the execution
     val start = OffsetDateTime.now()
     val timePassedSinceLockAcquisition = Duration.between(lockedTask.lockExpirationTime!!.minusSeconds(lockDurationInSeconds), start)
     metrics.recordTaskQueueTime(lockedTask.topicName!!, timePassedSinceLockAcquisition)
     if (start.isBefore(lockedTask.lockExpirationTime)) {
       try {
-        subscriptionRepository.activateSubscriptionForTask(lockedTask.id!!, activeSubscription)
-        val variables = valueMapper.mapDtos(lockedTask.variables!!).filterBySubscription(activeSubscription)
-        logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${lockedTask.id}." }
-        val taskInformation = toTaskInformation(lockedTask).withReason(CREATE)
-        withThreadContextClassLoader(activeSubscription.action) {
-          activeSubscription.action.accept(taskInformation, variables)
-        }
-        logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${lockedTask.id}." }
-        metrics.incrementCompletedTasksCounter(lockedTask.topicName!!)
-      } catch (e: Exception) {
-        logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-        metrics.incrementFailedTasksCounter(lockedTask.topicName!!)
-        val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
-        externalTaskApi.handleFailure(
-          lockedTask.id,
-          ExternalTaskFailureDto().apply {
-            workerId = this@PullServiceTaskDelivery.workerId
-            retries = jobRetries
-            retryTimeout = retryTimeoutInSeconds * 1000 // from seconds to millis
-            errorDetails = e.stackTraceToString()
-            errorMessage = e.message
-          }
-        )
-        cleanupFailedDelivery(lockedTask.id!!)
-        logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+        deliverTask(lockedTask, activeSubscription)
       } finally {
         metrics.recordTaskExecutionTime(lockedTask.topicName!!, Duration.between(start, OffsetDateTime.now()))
       }
@@ -157,50 +141,99 @@ class PullServiceTaskDelivery(
     }
   }
 
+  private fun deliverTask(lockedTask: LockedExternalTaskDto, activeSubscription: TaskSubscriptionHandle) {
+    val (taskInformation, variables) = try {
+      subscriptionRepository.activateSubscriptionForTask(lockedTask.id!!, activeSubscription)
+      val createdTaskInformation = toTaskInformation(lockedTask).withReason(CREATE)
+      val subscribedVariables = valueMapper.mapDtos(lockedTask.variables!!).filterBySubscription(activeSubscription)
+      createdTaskInformation to subscribedVariables
+    } catch (e: Exception) {
+      reportFailure(lockedTask, e)
+      return
+    }
+    decoration.run(taskInformation, variables) {
+      outcomeRecorder.track(lockedTask.id!!) { invokeHandlerOrReportFailure(lockedTask, activeSubscription, taskInformation, variables) }
+    }
+  }
+
+  private fun invokeHandlerOrReportFailure(
+    lockedTask: LockedExternalTaskDto,
+    activeSubscription: TaskSubscriptionHandle,
+    taskInformation: TaskInformation,
+    variables: Map<String, Any?>,
+  ) {
+    try {
+      logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${lockedTask.id}." }
+      withThreadContextClassLoader(activeSubscription.action) {
+        activeSubscription.action.accept(taskInformation, variables)
+      }
+      logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${lockedTask.id}." }
+      metrics.incrementCompletedTasksCounter(lockedTask.topicName!!)
+    } catch (e: Exception) {
+      reportFailure(lockedTask, e)
+    }
+  }
+
+  private fun reportFailure(lockedTask: LockedExternalTaskDto, failure: Exception) {
+    val taskId = lockedTask.id!!
+    val isOutcomeAlreadyReported = outcomeRecorder.hasOutcome(taskId)
+    if (isOutcomeAlreadyReported) {
+      logger.error { "PROCESS-ENGINE-C7-REMOTE-048: handler of task $taskId failed after reporting an outcome, not reporting the failure: ${failure.message}" }
+      return
+    }
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task $taskId: ${failure.message}" }
+    metrics.incrementFailedTasksCounter(lockedTask.topicName!!)
+    val remainingRetries = lockedTask.retries?.minus(1) ?: retries
+    val retryTimeoutInMillis = retryTimeoutInSeconds * 1000
+    externalTaskApi.handleFailure(
+      taskId,
+      ExternalTaskFailureDto().apply {
+        workerId = this@PullServiceTaskDelivery.workerId
+        retries = remainingRetries
+        retryTimeout = retryTimeoutInMillis
+        errorDetails = failure.stackTraceToString()
+        errorMessage = failure.message
+      }
+    )
+    val failedOutcome = TaskOutcome.Failed(failure.message, remainingRetries, failure)
+    outcomeRecorder.record(taskId, failedOutcome)
+    cleanupFailedDelivery(taskId)
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task $taskId: ${failure.message}" }
+  }
+
   internal fun toTaskInformation(lockedTask: LockedExternalTaskDto) = lockedTask.toTaskInformation(processDefinitionMetaDataResolver)
 
   internal fun cleanUpTerminatedTasks() {
-    // TODO Implement metrics
-    // retrieve external tasks locked for configured worker id
-    val stillLockedTasksResult = externalTaskApi.queryExternalTasks(
-      null,
-      null,
-      ExternalTaskQueryDto()
-        .workerId(workerId)
-        .locked(true)
-        .sorting(
-          listOf(
-            ExternalTaskQueryDtoSortingInner()
-              .sortBy(ExternalTaskQueryDtoSortingInner.SortByEnum.CREATE_TIME)
-              .sortOrder(ExternalTaskQueryDtoSortingInner.SortOrderEnum.ASC)
-          )
-        )
-    )
-    val stillLockedTaskIds =
-      stillLockedTasksResult
-        .map { dto -> dto.id!! }
-        .toSet()
-    stillLockedTasksGauge.set(stillLockedTaskIds.size)
-
-    val deliveredTaskIdsMissingInEngine =
-      subscriptionRepository.getDeliveredTaskIds(TaskType.EXTERNAL)
-        .toMutableSet()
-        .apply {
-          removeAll(stillLockedTaskIds)
-        }
-        .toList()
-        .let {
-          it.subList(0, it.size.coerceAtMost(executor.queue.remainingCapacity())) // make sure the executor can accept our callable
-        }
-
-    // now we removed all still existing task ids from the list of already delivered
-    // the remaining tasks don't exist in the engine, lets handle them
-    val taskTerminationHandlerCallables = deliveredTaskIdsMissingInEngine.map { createTaskTerminationHandlerCallable(it) }
-
-    taskTerminationHandlerCallables.forEach { executor.submit(it) }
+    val deliveredTaskIds = subscriptionRepository.getDeliveredTaskIds(TaskType.EXTERNAL)
+    val notRunningTaskIds = deliveredTaskIds.filterNot(workerPool::isRunning)
+    val goneTaskIds = findTaskIdsMissingInEngine(notRunningTaskIds)
+    val stillLockedTaskCount = deliveredTaskIds.size - goneTaskIds.size
+    stillLockedTasksGauge.set(stillLockedTaskCount)
+    if (goneTaskIds.isEmpty()) {
+      return
+    }
+    submitTerminations(goneTaskIds)
   }
 
-  internal fun createTaskTerminationHandlerCallable(taskId: String): Callable<Unit> = Callable {
+  private fun submitTerminations(goneTaskIds: List<String>) {
+    workerPool.reserve(maxSlots = goneTaskIds.size).use { reservation ->
+      goneTaskIds.take(reservation.slots).forEach { goneTaskId -> reservation.submit(goneTaskId) { terminateTask(goneTaskId) } }
+    }
+  }
+
+  private fun findTaskIdsMissingInEngine(taskIds: List<String>): List<String> {
+    val existingTaskIds = taskIds.chunked(EXISTENCE_QUERY_CHUNK_SIZE).flatMap(::queryExistingTaskIds).toSet()
+    return taskIds.filterNot(existingTaskIds::contains)
+  }
+
+  private fun queryExistingTaskIds(taskIds: List<String>): List<String> {
+    val existenceQuery = ExternalTaskQueryDto().externalTaskIdIn(taskIds)
+    return externalTaskApi
+      .queryExternalTasks(null, null, existenceQuery)
+      .mapNotNull { it.id }
+  }
+
+  internal fun terminateTask(taskId: String) {
     // deactivate active subscription and handle termination
     val taskSubscriptionHandle = subscriptionRepository.deactivateSubscriptionForTask(taskId)
     if (taskSubscriptionHandle != null) {

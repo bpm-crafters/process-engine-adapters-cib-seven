@@ -1,7 +1,10 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion
 
 import dev.bpmcrafters.processengineapi.Empty
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskOutcome
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.*
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -15,10 +18,12 @@ private val logger = KotlinLogging.logger {}
  * @param externalTaskService external task service provided by the official Camunda Platform 7 client
  * @param subscriptionRepository repository for subscriptions.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class OfficialClientServiceTaskCompletionApiImpl(
   private val externalTaskService: ClientExternalTaskService,
   private val subscriptionRepository: SubscriptionRepository,
-  private val failureRetrySupplier: FailureRetrySupplier
+  private val failureRetrySupplier: FailureRetrySupplier,
+  private val outcomeRecorder: TaskOutcomeRecorder,
 ) : ServiceTaskCompletionApi {
 
   override fun completeTask(cmd: CompleteTaskCmd): CompletableFuture<Empty> {
@@ -29,6 +34,7 @@ class OfficialClientServiceTaskCompletionApiImpl(
         cmd.get(),
         mapOf()
       )
+    outcomeRecorder.record(cmd.taskId, TaskOutcome.Completed)
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(
@@ -49,6 +55,7 @@ class OfficialClientServiceTaskCompletionApiImpl(
         cmd.errorMessage,
         cmd.get()
       )
+    outcomeRecorder.record(cmd.taskId, TaskOutcome.BpmnError(cmd.errorCode))
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(
@@ -64,14 +71,17 @@ class OfficialClientServiceTaskCompletionApiImpl(
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-010: failing service task ${cmd.taskId}." }
     val (retries, retryTimeoutInSeconds) = failureRetrySupplier.apply(cmd.taskId)
     val retryTimeoutInMillis = cmd.retryBackoff?.toMillis() ?: retryTimeoutInSeconds * 1000
+    val remainingRetries = cmd.retryCount ?: retries
     externalTaskService
       .handleFailure(
         cmd.taskId,
         cmd.reason,
         cmd.errorDetails,
-        cmd.retryCount ?: retries,
+        remainingRetries,
         retryTimeoutInMillis
       )
+    val failedOutcome = TaskOutcome.Failed(cmd.reason, remainingRetries)
+    outcomeRecorder.record(cmd.taskId, failedOutcome)
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
         termination.accept(

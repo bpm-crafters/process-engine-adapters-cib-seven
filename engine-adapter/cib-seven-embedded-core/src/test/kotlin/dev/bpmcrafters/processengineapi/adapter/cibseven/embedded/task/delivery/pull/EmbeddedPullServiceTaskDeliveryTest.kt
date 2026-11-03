@@ -1,11 +1,17 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.ThreadContextClassLoaderThreadFactory
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
 import dev.bpmcrafters.processengineapi.task.TaskType
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.externaltask.ExternalTaskQueryBuilder
 import org.cibseven.bpm.engine.externaltask.ExternalTaskQueryTopicBuilder
@@ -18,6 +24,7 @@ import org.mockito.kotlin.whenever
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class EmbeddedPullServiceTaskDeliveryTest {
 
   companion object {
@@ -31,11 +38,12 @@ class EmbeddedPullServiceTaskDeliveryTest {
     externalTaskService = externalTaskService,
     workerId = "test-worker",
     subscriptionRepository = subscriptionRepository,
-    maxTasks = 100,
     lockDurationInSeconds = DEFAULT_LOCK_DURATION_SECONDS,
     retryTimeoutInSeconds = 10L,
     retries = 3,
-    executorService = Executors.newSingleThreadExecutor()
+    workerPool = ServiceTaskWorkerPool(Executors.newSingleThreadExecutor(), maxConcurrentTasks = 100),
+    outcomeRecorder = TaskOutcomeRecorder(),
+    decoration = TaskExecutionDecoration.NONE,
   )
 
   @Test
@@ -156,17 +164,18 @@ class EmbeddedPullServiceTaskDeliveryTest {
       externalTaskService = externalTaskService,
       workerId = "test-worker",
       subscriptionRepository = subscriptionRepository,
-      maxTasks = 100,
       lockDurationInSeconds = DEFAULT_LOCK_DURATION_SECONDS,
       retryTimeoutInSeconds = 10L,
       retries = 3,
-      executorService = Executors.newSingleThreadExecutor(ThreadContextClassLoaderThreadFactory(workerContextClassLoader))
+      workerPool = ServiceTaskWorkerPool(Executors.newSingleThreadExecutor(ThreadContextClassLoaderThreadFactory(workerContextClassLoader)), maxConcurrentTasks = 100),
+      outcomeRecorder = TaskOutcomeRecorder(),
+      decoration = TaskExecutionDecoration.NONE,
     )
 
     deliveryWithIsolatedWorker.refresh()
 
     // The handler could load the application class, i.e. the delivery switched to the handler's class loader.
-    assertThat(handlerLoadedApplicationClass).isTrue()
+    await untilAsserted { assertThat(handlerLoadedApplicationClass).isTrue() }
     assertThat(observedContextClassLoader.get()).isSameAs(javaClass.classLoader)
   }
 }

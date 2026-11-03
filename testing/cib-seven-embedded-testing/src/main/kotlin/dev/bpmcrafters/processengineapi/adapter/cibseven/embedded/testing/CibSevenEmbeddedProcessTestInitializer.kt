@@ -1,5 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.testing
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.deploy.DeploymentApiImpl
@@ -42,7 +43,7 @@ class CibSevenEmbeddedProcessTestInitializer : ProcessTestInitializer {
         userTaskCompletionApi = CibSevenUserTaskCompletionApiImpl(engine.taskService, subscriptions),
         userTaskModificationApi = CibSevenUserTaskModificationApiImpl(engine.taskService),
         serviceTaskCompletionApi = CibSevenServiceTaskCompletionApiImpl(
-          workerId, engine.externalTaskService, subscriptions, LinearMemoryFailureRetrySupplier(3, 1)
+          workerId, engine.externalTaskService, subscriptions, LinearMemoryFailureRetrySupplier(3, 1), TaskOutcomeRecorder()
         ),
         correlationApi = CorrelationApiImpl(engine.runtimeService, commandExecutor),
         signalApi = SignalApiImpl(engine.runtimeService, commandExecutor),

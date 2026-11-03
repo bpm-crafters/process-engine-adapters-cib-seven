@@ -84,10 +84,6 @@ class CibSevenRemoteAdapterProperties(
      */
     val workerId: String,
     /**
-     * Max count of external tasks to fetch. Defaults to 100.
-     */
-    val maxTaskCount: Int = 100,
-    /**
      * Time in seconds to lock external task. Default to 10.
      */
     val lockTimeInSeconds: Long = 10L,
@@ -115,14 +111,6 @@ class CibSevenRemoteAdapterProperties(
      * Should variables be deserialized on server?
      */
     val deserializeOnServer: Boolean = false,
-    /**
-     * External task executor thread pool size.
-     */
-    val workerThreadPoolSize: Int = 10,
-    /**
-     * External task executor queue capacity.
-     */
-    val workerThreadPoolQueueCapacity: Int = 50,
   )
 
   /**

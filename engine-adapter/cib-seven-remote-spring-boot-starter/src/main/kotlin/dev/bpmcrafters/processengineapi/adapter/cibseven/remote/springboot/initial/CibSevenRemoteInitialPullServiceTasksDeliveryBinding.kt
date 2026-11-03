@@ -1,5 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial.CibSevenRemoteInitialPullServiceTasksDeliveryBinding.Companion.ORDER
@@ -14,7 +18,6 @@ import org.springframework.context.event.EventListener
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.scheduling.annotation.Async
-import java.util.concurrent.ThreadPoolExecutor
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,11 +27,14 @@ private val logger = KotlinLogging.logger {}
  * execute an initial pull.
  */
 @Order(ORDER)
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 open class CibSevenRemoteInitialPullServiceTasksDeliveryBinding(
   externalTaskApi: ExternalTaskApi,
   subscriptionRepository: SubscriptionRepository,
   c7AdapterProperties: CibSevenRemoteAdapterProperties,
-  executor: ThreadPoolExecutor,
+  workerPool: ServiceTaskWorkerPool,
+  outcomeRecorder: TaskOutcomeRecorder,
+  decoration: TaskExecutionDecoration,
   valueMapper: ValueMapper,
   processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   metrics: PullServiceTaskDeliveryMetrics
@@ -41,11 +47,12 @@ open class CibSevenRemoteInitialPullServiceTasksDeliveryBinding(
     subscriptionRepository = subscriptionRepository,
     externalTaskApi = externalTaskApi,
     workerId = c7AdapterProperties.serviceTasks.workerId,
-    maxTasks = c7AdapterProperties.serviceTasks.maxTaskCount,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = c7AdapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = c7AdapterProperties.serviceTasks.retries,
-    executor = executor,
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration,
     valueMapper = valueMapper,
     deserializeOnServer = c7AdapterProperties.serviceTasks.deserializeOnServer,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,

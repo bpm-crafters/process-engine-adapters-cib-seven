@@ -1,5 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.ServiceTaskWorkerPool
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.task.TaskOutcomeRecorder
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterEnabledCondition
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties.Companion.DEFAULT_PREFIX
@@ -23,7 +27,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.scheduling.annotation.EnableAsync
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.ThreadPoolExecutor
 
 private val logger = KotlinLogging.logger {}
 
@@ -69,6 +72,7 @@ class CibSevenRemoteInitialPullOnStartupAutoConfiguration {
     c7RemoteAdapterProperties = c7AdapterProperties
   )
 
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   @Bean("cib-seven-remote-service-task-initial-pull")
   @Qualifier("cib-seven-remote-service-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["service-tasks.execute-initial-pull-on-startup"])
@@ -76,8 +80,12 @@ class CibSevenRemoteInitialPullOnStartupAutoConfiguration {
     externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: CibSevenRemoteAdapterProperties,
-    @Qualifier("cib-seven-remote-service-task-worker-executor")
-    executor: ThreadPoolExecutor,
+    @Qualifier("cib-seven-remote-service-task-worker-pool")
+    workerPool: ServiceTaskWorkerPool,
+    @Qualifier("cib-seven-remote-task-outcome-recorder")
+    outcomeRecorder: TaskOutcomeRecorder,
+    @Qualifier("cib-seven-remote-task-execution-decoration")
+    decoration: TaskExecutionDecoration,
     valueMapper: ValueMapper,
     @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
@@ -86,7 +94,9 @@ class CibSevenRemoteInitialPullOnStartupAutoConfiguration {
     externalTaskApi = externalTaskApi,
     subscriptionRepository = subscriptionRepository,
     c7AdapterProperties = c7AdapterProperties,
-    executor = executor,
+    workerPool = workerPool,
+    outcomeRecorder = outcomeRecorder,
+    decoration = decoration,
     valueMapper = valueMapper,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     metrics = metrics,
