@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterEnabledCondition
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties.Companion.DEFAULT_PREFIX
@@ -72,6 +74,7 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
   @Bean("cib7remote-service-task-initial-pull")
   @Qualifier("cib7remote-service-task-initial-pull")
   @ConditionalOnProperty(prefix = DEFAULT_PREFIX, name = ["service-tasks.execute-initial-pull-on-startup"])
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   fun configureInitialPullForExternalServiceTaskDelivery(
     externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
@@ -82,6 +85,7 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     @Qualifier("cib7remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     metrics: PullServiceTaskDeliveryMetrics,
+    taskExecutionDecoration: TaskExecutionDecoration,
   ) = Cib7RemoteInitialPullServiceTasksDeliveryBinding(
     externalTaskApi = externalTaskApi,
     subscriptionRepository = subscriptionRepository,
@@ -90,5 +94,6 @@ class Cib7RemoteInitialPullOnStartupAutoConfiguration {
     valueMapper = valueMapper,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     metrics = metrics,
+    taskExecutionDecoration = taskExecutionDecoration,
   )
 }

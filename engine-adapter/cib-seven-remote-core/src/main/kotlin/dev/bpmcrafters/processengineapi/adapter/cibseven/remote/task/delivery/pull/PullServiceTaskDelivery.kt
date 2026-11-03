@@ -2,6 +2,8 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.p
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.RefreshableDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.ServiceTaskDelivery
@@ -32,6 +34,7 @@ private val logger = KotlinLogging.logger {}
  * Delivers external tasks to subscriptions.
  * This implementation uses internal Java API and pulls tasks for delivery.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class PullServiceTaskDelivery(
   private val externalTaskApi: ExternalTaskApi,
   private val processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
@@ -45,6 +48,7 @@ class PullServiceTaskDelivery(
   private val valueMapper: ValueMapper,
   private val deserializeOnServer: Boolean,
   private val metrics: PullServiceTaskDeliveryMetrics,
+  private val taskExecutionDecoration: TaskExecutionDecoration = TaskExecutionDecoration.NONE,
 ) : ServiceTaskDelivery, RefreshableDelivery {
 
   internal val stillLockedTasksGauge = AtomicInteger()
@@ -124,37 +128,53 @@ class PullServiceTaskDelivery(
     metrics.recordTaskQueueTime(lockedTask.topicName!!, timePassedSinceLockAcquisition)
     if (start.isBefore(lockedTask.lockExpirationTime)) {
       try {
-        subscriptionRepository.activateSubscriptionForTask(lockedTask.id!!, activeSubscription)
-        val variables = valueMapper.mapDtos(lockedTask.variables!!).filterBySubscription(activeSubscription)
-        logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${lockedTask.id}." }
-        val taskInformation = toTaskInformation(lockedTask).withReason(CREATE)
-        withThreadContextClassLoader(activeSubscription.action) {
-          activeSubscription.action.accept(taskInformation, variables)
-        }
-        logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${lockedTask.id}." }
-        metrics.incrementCompletedTasksCounter(lockedTask.topicName!!)
-      } catch (e: Exception) {
-        logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-        metrics.incrementFailedTasksCounter(lockedTask.topicName!!)
-        val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
-        externalTaskApi.handleFailure(
-          lockedTask.id,
-          ExternalTaskFailureDto().apply {
-            workerId = this@PullServiceTaskDelivery.workerId
-            retries = jobRetries
-            retryTimeout = retryTimeoutInSeconds * 1000 // from seconds to millis
-            errorDetails = e.stackTraceToString()
-            errorMessage = e.message
-          }
-        )
-        cleanupFailedDelivery(lockedTask.id!!)
-        logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+        deliverDecorated(lockedTask, activeSubscription)
       } finally {
         metrics.recordTaskExecutionTime(lockedTask.topicName!!, Duration.between(start, OffsetDateTime.now()))
       }
     } else {
       metrics.incrementDroppedTasksCounter(lockedTask.topicName!!, EXPIRED_WHILE_IN_QUEUE)
     }
+  }
+
+  private fun deliverDecorated(lockedTask: LockedExternalTaskDto, activeSubscription: TaskSubscriptionHandle) {
+    val (taskInformation, variables) = try {
+      toTaskInformation(lockedTask).withReason(CREATE) to valueMapper.mapDtos(lockedTask.variables!!).filterBySubscription(activeSubscription)
+    } catch (e: Exception) {
+      failDelivery(lockedTask, e)
+      return
+    }
+    taskExecutionDecoration.run(taskInformation, variables) {
+      try {
+        subscriptionRepository.activateSubscriptionForTask(lockedTask.id!!, activeSubscription)
+        logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${lockedTask.id}." }
+        withThreadContextClassLoader(activeSubscription.action) {
+          activeSubscription.action.accept(taskInformation, variables)
+        }
+        logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${lockedTask.id}." }
+        metrics.incrementCompletedTasksCounter(lockedTask.topicName!!)
+      } catch (e: Exception) {
+        failDelivery(lockedTask, e)
+      }
+    }
+  }
+
+  private fun failDelivery(lockedTask: LockedExternalTaskDto, e: Exception) {
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${lockedTask.id}: ${e.message}" }
+    metrics.incrementFailedTasksCounter(lockedTask.topicName!!)
+    val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
+    externalTaskApi.handleFailure(
+      lockedTask.id,
+      ExternalTaskFailureDto().apply {
+        workerId = this@PullServiceTaskDelivery.workerId
+        retries = jobRetries
+        retryTimeout = retryTimeoutInSeconds * 1000 // from seconds to millis
+        errorDetails = e.stackTraceToString()
+        errorMessage = e.message
+      }
+    )
+    cleanupFailedDelivery(lockedTask.id!!)
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
   }
 
   internal fun toTaskInformation(lockedTask: LockedExternalTaskDto) = lockedTask.toTaskInformation(processDefinitionMetaDataResolver)

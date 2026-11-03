@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.client
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterAutoConfiguration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SUBSCRIBED
@@ -44,16 +46,19 @@ class OfficialClientServiceTaskAutoConfiguration {
   }
 
   @Bean(name = ["cib7remote-service-task-delivery"], initMethod = "subscribe", destroyMethod = "unsubscribe")
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   fun subscribingClientExternalTaskDelivery(
     subscriptionRepository: SubscriptionRepository,
     externalTaskClient: ExternalTaskClient,
-    c7AdapterProperties: Cib7RemoteAdapterProperties
+    c7AdapterProperties: Cib7RemoteAdapterProperties,
+    taskExecutionDecoration: TaskExecutionDecoration
   ) = SubscribingServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,
     externalTaskClient = externalTaskClient,
     retryTimeoutInSeconds = c7AdapterProperties.serviceTasks.retryTimeoutInSeconds,
-    retries = c7AdapterProperties.serviceTasks.retries
+    retries = c7AdapterProperties.serviceTasks.retries,
+    taskExecutionDecoration = taskExecutionDecoration
   )
 
   @Bean("cib7remote-service-task-completion-api")

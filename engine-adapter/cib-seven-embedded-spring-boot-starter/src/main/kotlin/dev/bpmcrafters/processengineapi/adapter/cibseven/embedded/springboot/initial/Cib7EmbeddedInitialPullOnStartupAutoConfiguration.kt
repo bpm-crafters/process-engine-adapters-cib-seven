@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.*
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.Cib7EmbeddedAdapterEnabledCondition
@@ -56,16 +58,19 @@ class Cib7EmbeddedInitialPullOnStartupAutoConfiguration {
   @Bean("cib7embedded-service-task-initial-pull")
   @Qualifier("cib7embedded-service-task-initial-pull")
   @Conditional(Cib7EmbeddedAdapterServiceTaskInitialPullEnabledCondition::class)
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   fun configureInitialPullForExternalServiceTaskDelivery(
     externalTaskService: ExternalTaskService,
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: Cib7EmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    executorService: ExecutorService,
+    taskExecutionDecoration: TaskExecutionDecoration
   ) = Cib7EmbeddedInitialPullServiceTasksDeliveryBinding(
     externalTaskService = externalTaskService,
     subscriptionRepository = subscriptionRepository,
     adapterProperties = adapterProperties,
-    executorService = executorService
+    executorService = executorService,
+    taskExecutionDecoration = taskExecutionDecoration
   )
 }

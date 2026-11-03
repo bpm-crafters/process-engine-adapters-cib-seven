@@ -1,5 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecorator
+import org.springframework.beans.factory.ObjectProvider
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.ThreadContextClassLoaderThreadFactory
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.CorrelationApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.correlation.SignalApiImpl
@@ -68,6 +72,11 @@ class Cib7EmbeddedAdapterAutoConfiguration {
     commandExecutor = commandExecutor,
     processDefinitionMetaDataResolver = CachingProcessDefinitionMetaDataResolver(repositoryService = repositoryService),
   )
+
+  @Bean("cib7embedded-task-execution-decoration")
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
+  fun taskExecutionDecoration(taskExecutionDecorators: ObjectProvider<TaskExecutionDecorator>) =
+    TaskExecutionDecoration(taskExecutionDecorators.orderedStream().toList())
 
   @Bean("cib7embedded-task-subscription-api")
   @Qualifier("cib7embedded-task-subscription-api")

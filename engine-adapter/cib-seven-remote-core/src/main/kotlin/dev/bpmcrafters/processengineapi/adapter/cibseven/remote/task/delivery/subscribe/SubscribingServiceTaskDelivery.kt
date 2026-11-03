@@ -2,6 +2,8 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.s
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.ServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
@@ -11,6 +13,7 @@ import dev.bpmcrafters.processengineapi.task.TaskType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.client.ExternalTaskClient
 import org.cibseven.bpm.client.task.ExternalTask
+import org.cibseven.bpm.client.task.ExternalTaskService
 import org.cibseven.bpm.client.topic.TopicSubscription
 import org.cibseven.bpm.client.topic.TopicSubscriptionBuilder
 
@@ -19,12 +22,14 @@ private val logger = KotlinLogging.logger {}
 /**
  * Implementation of task delivery based on Camunda External Task Client.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class SubscribingServiceTaskDelivery(
   private val externalTaskClient: ExternalTaskClient,
   private val subscriptionRepository: SubscriptionRepository,
   private val lockDurationInSeconds: Long,
   private val retryTimeoutInSeconds: Long,
   private val retries: Int,
+  private val taskExecutionDecoration: TaskExecutionDecoration = TaskExecutionDecoration.NONE,
 ) : ServiceTaskDelivery {
 
   private val camundaTaskListTopicSubscriptions = mutableListOf<TopicSubscription>()
@@ -44,27 +49,7 @@ class SubscribingServiceTaskDelivery(
               .lockDuration(lockDurationInSeconds * 1000) // millis
               .handler { externalTask, externalTaskService ->
                 if (subscription.matches(externalTask)) {
-                  try {
-                    subscriptionRepository.activateSubscriptionForTask(externalTask.id, subscription)
-                    val variables = externalTask.allVariables.filterBySubscription(subscription)
-                    logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${externalTask.id}." }
-                    withThreadContextClassLoader(subscription.action) {
-                      subscription.action.accept(externalTask.toTaskInformation().withReason(TaskInformation.CREATE), variables)
-                    }
-                    logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${externalTask.id}." }
-                  } catch (e: Exception) {
-                    val jobRetries: Int = externalTask.retries?.minus(1) ?: retries
-                    logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${externalTask.id}: ${e.message}" }
-                    externalTaskService.handleFailure(
-                      externalTask.id,
-                      "Error delivering external task",
-                      e.message,
-                      jobRetries,
-                      retryTimeoutInSeconds * 1000 // millis
-                    )
-                    cleanupFailedDelivery(externalTask.id)
-                    logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${externalTask.id}: ${e.message}" }
-                  }
+                  deliverDecorated(externalTask, externalTaskService, subscription)
                 } else {
                   // put it back
                   externalTaskService.handleFailure(
@@ -130,6 +115,41 @@ class SubscribingServiceTaskDelivery(
       this
     }
     // FIXME -> consider complex tenant filtering
+  }
+
+  private fun deliverDecorated(externalTask: ExternalTask, externalTaskService: ExternalTaskService, subscription: TaskSubscriptionHandle) {
+    val (taskInformation, variables) = try {
+      externalTask.toTaskInformation().withReason(TaskInformation.CREATE) to externalTask.allVariables.filterBySubscription(subscription)
+    } catch (e: Exception) {
+      failDelivery(externalTask, externalTaskService, e)
+      return
+    }
+    taskExecutionDecoration.run(taskInformation, variables) {
+      try {
+        subscriptionRepository.activateSubscriptionForTask(externalTask.id, subscription)
+        logger.debug { "PROCESS-ENGINE-C7-REMOTE-031: delivering service task ${externalTask.id}." }
+        withThreadContextClassLoader(subscription.action) {
+          subscription.action.accept(taskInformation, variables)
+        }
+        logger.debug { "PROCESS-ENGINE-C7-REMOTE-032: successfully delivered service task ${externalTask.id}." }
+      } catch (e: Exception) {
+        failDelivery(externalTask, externalTaskService, e)
+      }
+    }
+  }
+
+  private fun failDelivery(externalTask: ExternalTask, externalTaskService: ExternalTaskService, e: Exception) {
+    val jobRetries: Int = externalTask.retries?.minus(1) ?: retries
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-033: failing delivering task ${externalTask.id}: ${e.message}" }
+    externalTaskService.handleFailure(
+      externalTask.id,
+      "Error delivering external task",
+      e.message,
+      jobRetries,
+      retryTimeoutInSeconds * 1000 // millis
+    )
+    cleanupFailedDelivery(externalTask.id)
+    logger.error { "PROCESS-ENGINE-C7-REMOTE-034: successfully failed delivering task ${externalTask.id}: ${e.message}" }
   }
 
   private fun cleanupFailedDelivery(taskId: String) {
