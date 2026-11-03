@@ -2,8 +2,10 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties.Companion.DEFAULT_PREFIX
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.DeprecatedConfigurationProperty
 import org.springframework.boot.context.properties.NestedConfigurationProperty
 import org.springframework.validation.annotation.Validated
+import java.time.Duration
 
 @ConfigurationProperties(prefix = DEFAULT_PREFIX)
 @Validated
@@ -57,12 +59,24 @@ class CibSevenEmbeddedAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
+    @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.user-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 5L,
     /**
      * Should an initial pull be executed on startup.
      */
     val executeInitialPullOnStartup: Boolean = true,
-  )
+    /**
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least 1ms.
+     */
+    val scheduleDeliveryFixedRate: Duration? = null,
+  ) {
+    val scheduleDeliveryIntervalInMilliseconds: Long
+      get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+
+    init {
+      require(scheduleDeliveryFixedRate == null || scheduleDeliveryFixedRate.toMillis() > 0) { "schedule-delivery-fixed-rate must be at least 1ms, but was $scheduleDeliveryFixedRate." }
+    }
+  }
 
 
   /**
@@ -88,6 +102,7 @@ class CibSevenEmbeddedAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
+    @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.service-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 13L,
     /**
      * Delivery strategy for external service tasks.
@@ -100,8 +115,19 @@ class CibSevenEmbeddedAdapterProperties(
     /**
      * Default initial number of retries.
      */
-    val retries: Int = 3
-  )
+    val retries: Int = 3,
+    /**
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least 1ms.
+     */
+    val scheduleDeliveryFixedRate: Duration? = null,
+  ) {
+    val scheduleDeliveryIntervalInMilliseconds: Long
+      get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+
+    init {
+      require(scheduleDeliveryFixedRate == null || scheduleDeliveryFixedRate.toMillis() > 0) { "schedule-delivery-fixed-rate must be at least 1ms, but was $scheduleDeliveryFixedRate." }
+    }
+  }
 
   /**
    * Strategy how the user tasks are delivered to subscriptions.

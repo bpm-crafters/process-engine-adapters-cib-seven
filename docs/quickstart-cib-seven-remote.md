@@ -39,11 +39,11 @@ dev:
             max-task-count: 100
             lock-time-in-seconds: 10
             execute-initial-pull-on-startup: true
-            schedule-delivery-fixed-rate-in-seconds: 30
+            schedule-delivery-fixed-rate: 30s
           user-tasks:
             delivery-strategy: remote_scheduled   # remote_scheduled | custom | disabled
             execute-initial-pull-on-startup: true
-            schedule-delivery-fixed-rate-in-seconds: 30
+            schedule-delivery-fixed-rate: 30s
 ```
 
 ## Connection
@@ -70,3 +70,12 @@ dev:
 | `remote_scheduled`  | The adapter periodically queries user tasks over REST (pull), using its own scheduler. |
 | `custom`            | You provide your own delivery beans.                                                 |
 | `disabled`          | No user task delivery.                                                               |
+
+## Scheduled delivery interval
+
+Applies to `service-tasks.*` and `user-tasks.*` with delivery strategy `remote_scheduled`.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `schedule-delivery-fixed-rate` | not set | Polling delay as a `Duration`, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least `1ms`. A value without unit is read as milliseconds. The delay starts after the previous pull finished. User task handlers are part of the pull, service task handlers run asynchronously on the worker pool. Every pull sends REST calls to the engine, so short intervals add engine load and HTTP traffic. |
+| `schedule-delivery-fixed-rate-in-seconds` | `13` (service tasks), `5` (user tasks) | Deprecated, use `schedule-delivery-fixed-rate`. Polling delay in whole seconds. |

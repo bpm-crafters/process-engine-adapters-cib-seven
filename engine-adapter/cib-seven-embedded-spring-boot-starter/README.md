@@ -97,13 +97,13 @@ dev:
             lock-time-in-seconds: 10       # How long to lock fetched tasks
             max-task-count: 100            # Max tasks to fetch per poll
             retry-timeout-in-seconds: 30   # Retry timeout for failed tasks
-            schedule-delivery-fixed-rate-in-seconds: 10  # Polling interval
+            schedule-delivery-fixed-rate: 10s            # Polling delay, e.g. 200ms
             execute-initial-pull-on-startup: true        # Pull tasks on startup
             retries: 3                     # Default retry count for tasks
 
           user-tasks:
             delivery-strategy: embedded_scheduled
-            schedule-delivery-fixed-rate-in-seconds: 5   # Polling interval
+            schedule-delivery-fixed-rate: 5s             # Polling delay, e.g. 200ms
             execute-initial-pull-on-startup: true        # Pull tasks on startup
 ```
 
