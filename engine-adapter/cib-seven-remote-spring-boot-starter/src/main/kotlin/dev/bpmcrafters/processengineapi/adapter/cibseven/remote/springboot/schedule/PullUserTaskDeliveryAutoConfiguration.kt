@@ -1,7 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.schedule
 
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemotePullServicesAutoConfiguration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemotePullServicesAutoConfiguration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.ConditionalOnUserTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullUserTaskDelivery
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -19,13 +19,13 @@ private val logger = KotlinLogging.logger {}
 @ConditionalOnUserTaskDeliveryStrategy(
   strategy = REMOTE_SCHEDULED
 )
-@AutoConfigureAfter(Cib7RemotePullServicesAutoConfiguration::class)
+@AutoConfigureAfter(CibSevenRemotePullServicesAutoConfiguration::class)
 class PullUserTaskDeliveryAutoConfiguration(
   private val remotePullUserTaskDelivery: PullUserTaskDelivery
 ) {
 
   @Scheduled(
-    fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-remote-dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties'.userTasks.scheduleDeliveryFixedRateInSeconds}",
+    fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-remote-dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties'.userTasks.scheduleDeliveryFixedRateInSeconds}",
     timeUnit = SECONDS,
     scheduler = "cib-seven-remote-task-scheduler"
   )
