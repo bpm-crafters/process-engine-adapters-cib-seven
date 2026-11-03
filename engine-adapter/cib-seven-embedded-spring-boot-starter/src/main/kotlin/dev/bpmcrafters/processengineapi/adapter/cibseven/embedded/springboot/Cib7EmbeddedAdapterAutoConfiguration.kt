@@ -167,12 +167,12 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-embedded-service-task-worker-executor")
   @Qualifier("cib-seven-embedded-service-task-worker-executor")
   fun serviceTaskWorkerExecutor(): ThreadPoolExecutor = ThreadPoolExecutor(
-    10,
-    10,
-    0L,
-    TimeUnit.MILLISECONDS,
-    LinkedBlockingQueue(),
-    ThreadContextClassLoaderThreadFactory(Cib7EmbeddedAdapterAutoConfiguration::class.java.classLoader),
+    /* corePoolSize = */ 10,
+    /* maximumPoolSize = */ 10,
+    /* keepAliveTime = */ 0L,
+    /* unit = */ TimeUnit.MILLISECONDS,
+    /* workQueue = */ LinkedBlockingQueue(),
+    /* threadFactory = */ ThreadContextClassLoaderThreadFactory(Cib7EmbeddedAdapterAutoConfiguration::class.java.classLoader),
   )
 
   /**
