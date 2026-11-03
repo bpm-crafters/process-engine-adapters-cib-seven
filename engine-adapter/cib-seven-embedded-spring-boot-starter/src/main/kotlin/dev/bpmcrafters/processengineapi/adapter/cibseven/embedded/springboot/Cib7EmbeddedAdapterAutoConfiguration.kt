@@ -37,6 +37,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -163,8 +166,12 @@ class Cib7EmbeddedAdapterAutoConfiguration {
   @Bean("cib-seven-embedded-service-task-worker-executor")
   @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-embedded-service-task-worker-executor")
   @Qualifier("cib-seven-embedded-service-task-worker-executor")
-  fun serviceTaskWorkerExecutor(): ExecutorService = Executors.newFixedThreadPool(
+  fun serviceTaskWorkerExecutor(): ThreadPoolExecutor = ThreadPoolExecutor(
     10,
+    10,
+    0L,
+    TimeUnit.MILLISECONDS,
+    LinkedBlockingQueue(),
     ThreadContextClassLoaderThreadFactory(Cib7EmbeddedAdapterAutoConfiguration::class.java.classLoader),
   )
 
