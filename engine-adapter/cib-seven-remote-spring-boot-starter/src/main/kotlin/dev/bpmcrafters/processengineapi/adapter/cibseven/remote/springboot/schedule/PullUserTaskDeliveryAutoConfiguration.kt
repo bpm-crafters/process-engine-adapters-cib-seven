@@ -27,7 +27,7 @@ class PullUserTaskDeliveryAutoConfiguration(
   @Scheduled(
     fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-remote-dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties'.userTasks.scheduleDeliveryFixedRateInSeconds}",
     timeUnit = SECONDS,
-    scheduler = "cib7remote-task-scheduler"
+    scheduler = "cib-seven-remote-task-scheduler"
   )
   fun refresh() {
     logger.trace { "PROCESS-ENGINE-C7-REMOTE-107: Delivering user tasks..." }

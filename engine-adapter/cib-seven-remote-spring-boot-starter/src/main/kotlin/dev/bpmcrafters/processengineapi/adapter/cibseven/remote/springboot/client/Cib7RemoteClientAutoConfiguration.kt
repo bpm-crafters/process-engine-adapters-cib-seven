@@ -130,7 +130,7 @@ class Cib7RemoteClientAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ValueMapper::class)
   fun valueMapper(
-    @Qualifier("cib7remote-object-mapper") objectMapper: ObjectMapper,
+    @Qualifier("cib-seven-remote-object-mapper") objectMapper: ObjectMapper,
     valueTypeResolver: ValueTypeResolver,
     valueTypeRegistration: ValueTypeRegistration,
     customValueSerializers: List<CustomValueSerializer>,

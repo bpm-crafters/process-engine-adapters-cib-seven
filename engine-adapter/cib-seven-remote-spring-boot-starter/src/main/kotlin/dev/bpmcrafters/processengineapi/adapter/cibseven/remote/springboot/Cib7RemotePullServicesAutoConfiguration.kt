@@ -56,10 +56,10 @@ class Cib7RemotePullServicesAutoConfiguration {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-202: Configuration applied." }
   }
 
-  @Bean("cib7remote-task-scheduler")
-  @Qualifier("cib7remote-task-scheduler")
+  @Bean("cib-seven-remote-task-scheduler")
+  @Qualifier("cib-seven-remote-task-scheduler")
   @Order(200)
-  @ConditionalOnMissingQualifiedBean(beanClass = TaskScheduler::class, qualifier = "cib7remote-task-scheduler")
+  @ConditionalOnMissingQualifiedBean(beanClass = TaskScheduler::class, qualifier = "cib-seven-remote-task-scheduler")
   fun taskScheduler(): TaskScheduler {
     val threadPoolTaskScheduler = ThreadPoolTaskScheduler()
     threadPoolTaskScheduler.poolSize = 2 // we have two schedulers, one for user tasks one for service tasks
@@ -81,18 +81,18 @@ class Cib7RemotePullServicesAutoConfiguration {
     return threadPoolTaskSchedulerBuilder.build()
   }
 
-  @Bean("cib7remote-service-task-delivery")
-  @Qualifier("cib7remote-service-task-delivery")
+  @Bean("cib-seven-remote-service-task-delivery")
+  @Qualifier("cib-seven-remote-service-task-delivery")
   @ConditionalOnServiceTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun scheduledServiceTaskDelivery(
     externalTaskApi: ExternalTaskApi,
-    @Qualifier("cib7remote-process-definition-meta-data-resolver")
+    @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
-    @Qualifier("cib7remote-service-task-worker-executor")
+    @Qualifier("cib-seven-remote-service-task-worker-executor")
     executor: ThreadPoolExecutor,
     valueMapper: ValueMapper,
     metrics: PullServiceTaskDeliveryMetrics
@@ -111,8 +111,8 @@ class Cib7RemotePullServicesAutoConfiguration {
     metrics = metrics
   )
 
-  @Bean("cib7remote-service-task-completion-api")
-  @Qualifier("cib7remote-service-task-completion-api")
+  @Bean("cib-seven-remote-service-task-completion-api")
+  @Qualifier("cib-seven-remote-service-task-completion-api")
   @ConditionalOnServiceTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
@@ -120,7 +120,7 @@ class Cib7RemotePullServicesAutoConfiguration {
     externalTaskApi: ExternalTaskApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
-    @Qualifier("cib7remote-failure-retry-supplier")
+    @Qualifier("cib-seven-remote-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier,
     valueMapper: ValueMapper
   ): ServiceTaskCompletionApi =
@@ -132,27 +132,27 @@ class Cib7RemotePullServicesAutoConfiguration {
       valueMapper = valueMapper
     )
 
-  @Bean("cib7remote-process-definition-meta-data-resolver")
-  @Qualifier("cib7remote-process-definition-meta-data-resolver")
-  @ConditionalOnMissingQualifiedBean(beanClass = ProcessDefinitionMetaDataResolver::class, qualifier = "cib7remote-process-definition-meta-data-resolver")
+  @Bean("cib-seven-remote-process-definition-meta-data-resolver")
+  @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
+  @ConditionalOnMissingQualifiedBean(beanClass = ProcessDefinitionMetaDataResolver::class, qualifier = "cib-seven-remote-process-definition-meta-data-resolver")
   fun cachingProcessDefinitionMetaDataResolver(processDefinitionApi: ProcessDefinitionApi): ProcessDefinitionMetaDataResolver {
     return CachingProcessDefinitionMetaDataResolver(processDefinitionApi)
   }
 
-  @Bean("cib7remote-user-task-delivery")
-  @Qualifier("cib7remote-user-task-delivery")
+  @Bean("cib-seven-remote-user-task-delivery")
+  @Qualifier("cib-seven-remote-user-task-delivery")
   @ConditionalOnUserTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
   fun scheduledUserTaskDelivery(
-    @Qualifier("cib7remote-process-definition-meta-data-resolver")
+    @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     taskApi: TaskApi,
     taskIdentityLinkApi: TaskIdentityLinkApi,
     taskVariableApi: TaskVariableApi,
     subscriptionRepository: SubscriptionRepository,
     c7AdapterProperties: Cib7RemoteAdapterProperties,
-    @Qualifier("cib7remote-user-task-worker-executor")
+    @Qualifier("cib-seven-remote-user-task-worker-executor")
     executorService: ExecutorService,
     valueMapper: ValueMapper
   ): PullUserTaskDelivery {
@@ -171,8 +171,8 @@ class Cib7RemotePullServicesAutoConfiguration {
   /**
    * User task completion API.
    */
-  @Bean("cib7remote-user-task-completion-api")
-  @Qualifier("cib7remote-user-task-completion-api")
+  @Bean("cib-seven-remote-user-task-completion-api")
+  @Qualifier("cib-seven-remote-user-task-completion-api")
   @ConditionalOnUserTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
@@ -190,8 +190,8 @@ class Cib7RemotePullServicesAutoConfiguration {
   /**
    * User task modification api.
    */
-  @Bean("cib7remote-user-task-modification-api")
-  @Qualifier("cib7remote-user-task-modification-api")
+  @Bean("cib-seven-remote-user-task-modification-api")
+  @Qualifier("cib-seven-remote-user-task-modification-api")
   @ConditionalOnUserTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
   )

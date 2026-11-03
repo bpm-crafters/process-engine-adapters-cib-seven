@@ -116,7 +116,7 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
     taskService: TaskService,
     @Qualifier("cib-seven-embedded-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
-    @Qualifier("cib7embedded-user-task-worker-executor")
+    @Qualifier("cib-seven-embedded-user-task-worker-executor")
     executorService: ExecutorService
   ): EmbeddedPullUserTaskDelivery {
     return EmbeddedPullUserTaskDelivery(

@@ -36,15 +36,15 @@ class Cib7EmbeddedInitialPullOnStartupAutoConfiguration {
     logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-203: Configuration for initial pull applied." }
   }
 
-  @Bean("cib7embedded-user-task-initial-pull")
-  @Qualifier("cib7embedded-user-task-initial-pull")
+  @Bean("cib-seven-embedded-user-task-initial-pull")
+  @Qualifier("cib-seven-embedded-user-task-initial-pull")
   @Conditional(Cib7EmbeddedAdapterUserTaskInitialPullEnabledCondition::class)
   fun configureInitialPullForUserTaskDelivery(
     taskService: TaskService,
     @Qualifier("cib-seven-embedded-process-definition-meta-data-resolver")
     processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
     subscriptionRepository: SubscriptionRepository,
-    @Qualifier("cib7embedded-user-task-worker-executor")
+    @Qualifier("cib-seven-embedded-user-task-worker-executor")
     executorService: ExecutorService
   ) = Cib7EmbeddedInitialPullUserTasksDeliveryBinding(
     taskService = taskService,
@@ -53,8 +53,8 @@ class Cib7EmbeddedInitialPullOnStartupAutoConfiguration {
     executorService = executorService
   )
 
-  @Bean("cib7embedded-service-task-initial-pull")
-  @Qualifier("cib7embedded-service-task-initial-pull")
+  @Bean("cib-seven-embedded-service-task-initial-pull")
+  @Qualifier("cib-seven-embedded-service-task-initial-pull")
   @Conditional(Cib7EmbeddedAdapterServiceTaskInitialPullEnabledCondition::class)
   fun configureInitialPullForExternalServiceTaskDelivery(
     externalTaskService: ExternalTaskService,

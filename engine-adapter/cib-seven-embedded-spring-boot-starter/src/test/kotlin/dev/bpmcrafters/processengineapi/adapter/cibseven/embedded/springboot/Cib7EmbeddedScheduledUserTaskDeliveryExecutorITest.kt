@@ -31,8 +31,8 @@ class Cib7EmbeddedScheduledUserTaskDeliveryExecutorITest(
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
     fun serviceTaskWorkerExecutor(): ExecutorService = namedExecutor("SERVICE-TASK-EXECUTOR")
 
-    @Bean("cib7embedded-user-task-worker-executor")
-    @Qualifier("cib7embedded-user-task-worker-executor")
+    @Bean("cib-seven-embedded-user-task-worker-executor")
+    @Qualifier("cib-seven-embedded-user-task-worker-executor")
     fun userTaskWorkerExecutor(): ExecutorService = namedExecutor("USER-TASK-EXECUTOR")
 
     private fun namedExecutor(prefix: String): ExecutorService {

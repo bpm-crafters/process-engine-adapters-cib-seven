@@ -43,7 +43,7 @@ class OfficialClientServiceTaskAutoConfiguration {
     return ExternalTaskServiceImpl(externalTaskClient.topicSubscriptionManager.engineClient)
   }
 
-  @Bean(name = ["cib7remote-service-task-delivery"], initMethod = "subscribe", destroyMethod = "unsubscribe")
+  @Bean(name = ["cib-seven-remote-service-task-delivery"], initMethod = "subscribe", destroyMethod = "unsubscribe")
   fun subscribingClientExternalTaskDelivery(
     subscriptionRepository: SubscriptionRepository,
     externalTaskClient: ExternalTaskClient,
@@ -56,12 +56,12 @@ class OfficialClientServiceTaskAutoConfiguration {
     retries = c7AdapterProperties.serviceTasks.retries
   )
 
-  @Bean("cib7remote-service-task-completion-api")
-  @Qualifier("cib7remote-service-task-completion-api")
+  @Bean("cib-seven-remote-service-task-completion-api")
+  @Qualifier("cib-seven-remote-service-task-completion-api")
   fun externalTaskClientCompletionApi(
     externalTaskService: ExternalTaskService,
     subscriptionRepository: SubscriptionRepository,
-    @Qualifier("cib7remote-failure-retry-supplier")
+    @Qualifier("cib-seven-remote-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier
   ): ServiceTaskCompletionApi =
     OfficialClientServiceTaskCompletionApiImpl(
