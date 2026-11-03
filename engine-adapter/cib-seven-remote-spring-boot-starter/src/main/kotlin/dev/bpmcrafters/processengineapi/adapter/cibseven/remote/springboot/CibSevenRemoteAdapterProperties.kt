@@ -66,7 +66,6 @@ class CibSevenRemoteAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
-    @Deprecated("Use scheduleDeliveryFixedRate instead.", ReplaceWith("scheduleDeliveryFixedRate"))
     @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.user-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 5L,
     /**
@@ -78,12 +77,16 @@ class CibSevenRemoteAdapterProperties(
      */
     val deserializeOnServer: Boolean = false,
     /**
-     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over [scheduleDeliveryFixedRateInSeconds].
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least 1ms.
      */
     val scheduleDeliveryFixedRate: Duration? = null,
   ) {
     val scheduleDeliveryIntervalInMilliseconds: Long
       get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+
+    init {
+      require(scheduleDeliveryFixedRate == null || scheduleDeliveryFixedRate.toMillis() > 0) { "schedule-delivery-fixed-rate must be at least 1ms, but was $scheduleDeliveryFixedRate." }
+    }
   }
 
   /**
@@ -109,7 +112,6 @@ class CibSevenRemoteAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
-    @Deprecated("Use scheduleDeliveryFixedRate instead.", ReplaceWith("scheduleDeliveryFixedRate"))
     @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.service-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 13L,
     /**
@@ -137,12 +139,16 @@ class CibSevenRemoteAdapterProperties(
      */
     val workerThreadPoolQueueCapacity: Int = 50,
     /**
-     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over [scheduleDeliveryFixedRateInSeconds].
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least 1ms.
      */
     val scheduleDeliveryFixedRate: Duration? = null,
   ) {
     val scheduleDeliveryIntervalInMilliseconds: Long
       get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+
+    init {
+      require(scheduleDeliveryFixedRate == null || scheduleDeliveryFixedRate.toMillis() > 0) { "schedule-delivery-fixed-rate must be at least 1ms, but was $scheduleDeliveryFixedRate." }
+    }
   }
 
   /**

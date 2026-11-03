@@ -77,5 +77,5 @@ Applies to `service-tasks.*` and `user-tasks.*` with delivery strategy `remote_s
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `schedule-delivery-fixed-rate` | not set | Polling delay as a `Duration`, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. A value without unit is read as milliseconds. The delay starts after the previous pull finished. Every pull sends REST calls to the engine, so short intervals add engine load and HTTP traffic. |
+| `schedule-delivery-fixed-rate` | not set | Polling delay as a `Duration`, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least `1ms`. A value without unit is read as milliseconds. The delay starts after the previous pull finished. User task handlers are part of the pull, service task handlers run asynchronously on the worker pool. Every pull sends REST calls to the engine, so short intervals add engine load and HTTP traffic. |
 | `schedule-delivery-fixed-rate-in-seconds` | `13` (service tasks), `5` (user tasks) | Deprecated, use `schedule-delivery-fixed-rate`. Polling delay in whole seconds. |
