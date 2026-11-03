@@ -7,7 +7,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.annotation.Scheduled
-import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.TimeUnit.MILLISECONDS
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,8 +24,8 @@ class CibSevenEmbeddedServiceTaskPullStrategyAutoConfiguration(
 ) {
 
   @Scheduled(
-    fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-embedded-dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties'.serviceTasks.scheduleDeliveryFixedRateInSeconds}",
-    timeUnit = SECONDS,
+    fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-embedded-dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties'.serviceTasks.scheduleDeliveryIntervalInMilliseconds}",
+    timeUnit = MILLISECONDS,
     scheduler = "cib-seven-embedded-task-scheduler"
   )
   fun refresh() {

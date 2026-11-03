@@ -2,8 +2,10 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties.Companion.DEFAULT_PREFIX
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.DeprecatedConfigurationProperty
 import org.springframework.boot.context.properties.NestedConfigurationProperty
 import org.springframework.validation.annotation.Validated
+import java.time.Duration
 
 @Validated
 @ConfigurationProperties(prefix = DEFAULT_PREFIX)
@@ -64,6 +66,8 @@ class CibSevenRemoteAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
+    @Deprecated("Use scheduleDeliveryFixedRate instead.", ReplaceWith("scheduleDeliveryFixedRate"))
+    @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.user-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 5L,
     /**
      * Should an initial pull be executed on startup.
@@ -73,7 +77,14 @@ class CibSevenRemoteAdapterProperties(
      * Should variables be deserialized on server?
      */
     val deserializeOnServer: Boolean = false,
-    )
+    /**
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over [scheduleDeliveryFixedRateInSeconds].
+     */
+    val scheduleDeliveryFixedRate: Duration? = null,
+  ) {
+    val scheduleDeliveryIntervalInMilliseconds: Long
+      get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+  }
 
   /**
    * Configuration for external service task handling.
@@ -98,6 +109,8 @@ class CibSevenRemoteAdapterProperties(
     /**
      * Fixed rate for scheduled user task delivery.
      */
+    @Deprecated("Use scheduleDeliveryFixedRate instead.", ReplaceWith("scheduleDeliveryFixedRate"))
+    @get:DeprecatedConfigurationProperty(replacement = "$DEFAULT_PREFIX.service-tasks.schedule-delivery-fixed-rate")
     val scheduleDeliveryFixedRateInSeconds: Long = 13L,
     /**
      * Delivery strategy for external service tasks.
@@ -123,7 +136,14 @@ class CibSevenRemoteAdapterProperties(
      * External task executor queue capacity.
      */
     val workerThreadPoolQueueCapacity: Int = 50,
-  )
+    /**
+     * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over [scheduleDeliveryFixedRateInSeconds].
+     */
+    val scheduleDeliveryFixedRate: Duration? = null,
+  ) {
+    val scheduleDeliveryIntervalInMilliseconds: Long
+      get() = (scheduleDeliveryFixedRate ?: Duration.ofSeconds(scheduleDeliveryFixedRateInSeconds)).toMillis()
+  }
 
   /**
    * Strategy how the user tasks are delivered to subscriptions.
