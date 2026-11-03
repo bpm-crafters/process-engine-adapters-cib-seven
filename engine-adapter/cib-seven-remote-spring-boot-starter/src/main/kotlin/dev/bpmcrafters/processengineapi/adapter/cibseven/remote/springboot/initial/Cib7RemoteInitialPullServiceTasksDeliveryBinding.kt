@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial.Cib7RemoteInitialPullServiceTasksDeliveryBinding.Companion.ORDER
@@ -24,6 +26,7 @@ private val logger = KotlinLogging.logger {}
  * execute an initial pull.
  */
 @Order(ORDER)
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 open class Cib7RemoteInitialPullServiceTasksDeliveryBinding(
   externalTaskApi: ExternalTaskApi,
   subscriptionRepository: SubscriptionRepository,
@@ -31,7 +34,8 @@ open class Cib7RemoteInitialPullServiceTasksDeliveryBinding(
   executor: ThreadPoolExecutor,
   valueMapper: ValueMapper,
   processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
-  metrics: PullServiceTaskDeliveryMetrics
+  metrics: PullServiceTaskDeliveryMetrics,
+  taskExecutionDecoration: TaskExecutionDecoration
 ) {
   companion object {
     const val ORDER = Ordered.HIGHEST_PRECEDENCE + 1000
@@ -49,7 +53,8 @@ open class Cib7RemoteInitialPullServiceTasksDeliveryBinding(
     valueMapper = valueMapper,
     deserializeOnServer = c7AdapterProperties.serviceTasks.deserializeOnServer,
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
-    metrics = metrics
+    metrics = metrics,
+    taskExecutionDecoration = taskExecutionDecoration
   )
 
   @EventListener

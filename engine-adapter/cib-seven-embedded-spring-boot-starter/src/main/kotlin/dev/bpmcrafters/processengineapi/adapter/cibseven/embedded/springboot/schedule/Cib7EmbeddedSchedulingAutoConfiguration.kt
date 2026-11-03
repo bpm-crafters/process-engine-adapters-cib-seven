@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.schedule
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterAutoConfiguration
@@ -79,12 +81,14 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
   @ConditionalOnServiceTaskDeliveryStrategy(
     strategy = EMBEDDED_SCHEDULED
   )
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   fun serviceTaskDelivery(
     subscriptionRepository: SubscriptionRepository,
     externalTaskService: ExternalTaskService,
     adapterProperties: Cib7EmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    executorService: ExecutorService,
+    taskExecutionDecoration: TaskExecutionDecoration
   ) = EmbeddedPullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     externalTaskService = externalTaskService,
@@ -93,7 +97,8 @@ class Cib7EmbeddedSchedulingAutoConfiguration {
     lockDurationInSeconds = adapterProperties.serviceTasks.lockTimeInSeconds,
     retryTimeoutInSeconds = adapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = adapterProperties.serviceTasks.retries,
-    executorService = executorService
+    executorService = executorService,
+    taskExecutionDecoration = taskExecutionDecoration
   )
 
   @Bean("cib-seven-embedded-process-definition-meta-data-resolver")

@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.initial.Cib7EmbeddedInitialPullServiceTasksDeliveryBinding.Companion.ORDER
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
@@ -21,11 +23,13 @@ private val logger = KotlinLogging.logger {}
  * execute an initial pull (e.g. for event-based delivery)
  */
 @Order(ORDER)
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 open class Cib7EmbeddedInitialPullServiceTasksDeliveryBinding(
   externalTaskService: ExternalTaskService,
   subscriptionRepository: SubscriptionRepository,
   adapterProperties: Cib7EmbeddedAdapterProperties,
-  executorService: ExecutorService
+  executorService: ExecutorService,
+  taskExecutionDecoration: TaskExecutionDecoration
 ) {
   companion object {
     const val ORDER = Ordered.HIGHEST_PRECEDENCE + 1000
@@ -41,6 +45,7 @@ open class Cib7EmbeddedInitialPullServiceTasksDeliveryBinding(
     retryTimeoutInSeconds = adapterProperties.serviceTasks.retryTimeoutInSeconds,
     retries = adapterProperties.serviceTasks.retries,
     executorService = executorService,
+    taskExecutionDecoration = taskExecutionDecoration,
   )
 
   @EventListener

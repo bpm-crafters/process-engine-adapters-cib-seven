@@ -1,5 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecorator
+import org.springframework.beans.factory.ObjectProvider
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.ThreadContextClassLoaderThreadFactory
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.serialization.AdapterDataConverter
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.correlation.CorrelationApiImpl
@@ -51,6 +55,11 @@ class Cib7RemoteAdapterAutoConfiguration {
   fun report() {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-200: Configuration applied." }
   }
+
+  @Bean("cib7remote-task-execution-decoration")
+  @OptIn(ExperimentalTaskExecutionDecoratorApi::class)
+  fun taskExecutionDecoration(taskExecutionDecorators: ObjectProvider<TaskExecutionDecorator>) =
+    TaskExecutionDecoration(taskExecutionDecorators.orderedStream().toList())
 
   @Bean("cib7remote-task-subscription-api")
   @Qualifier("cib7remote-task-subscription-api")

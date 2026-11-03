@@ -1,6 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.subscribe
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.adapter.cibseven.common.TaskMetaKeys
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.metaOf
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.toDateString
 import dev.bpmcrafters.processengineapi.task.TaskInformation
@@ -10,6 +11,7 @@ fun ExternalTask.toTaskInformation(): TaskInformation = TaskInformation(
   taskId = this.id,
   meta = metaOf(
     CommonRestrictions.ACTIVITY_ID to this.activityId,
+    TaskMetaKeys.ACTIVITY_INSTANCE_ID to this.activityInstanceId,
     CommonRestrictions.PROCESS_DEFINITION_KEY to this.processDefinitionKey,
     CommonRestrictions.PROCESS_INSTANCE_ID to this.processInstanceId,
     CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,

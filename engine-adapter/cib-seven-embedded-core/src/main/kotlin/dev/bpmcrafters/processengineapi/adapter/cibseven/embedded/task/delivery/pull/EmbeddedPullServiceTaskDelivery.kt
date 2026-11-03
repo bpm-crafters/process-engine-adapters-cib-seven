@@ -2,6 +2,8 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery
 
 import dev.bpmcrafters.processengineapi.CommonRestrictions
 import dev.bpmcrafters.processengineapi.adapter.cibseven.common.threading.withThreadContextClassLoader
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.ExternalServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.toTaskInformation
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
@@ -21,6 +23,7 @@ private val logger = KotlinLogging.logger {}
  * Delivers external tasks to subscriptions.
  * This implementation uses internal Java API and pulls tasks for delivery.
  */
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
 class EmbeddedPullServiceTaskDelivery(
   private val externalTaskService: ExternalTaskService,
   private val workerId: String,
@@ -30,6 +33,7 @@ class EmbeddedPullServiceTaskDelivery(
   private val retryTimeoutInSeconds: Long,
   private val retries: Int,
   private val executorService: ExecutorService,
+  private val taskExecutionDecoration: TaskExecutionDecoration = TaskExecutionDecoration.NONE,
 ) : ExternalServiceTaskDelivery, RefreshableDelivery {
 
   /**
@@ -53,35 +57,13 @@ class EmbeddedPullServiceTaskDelivery(
             return@map null
           }
           executorService.submit {  // in another thread
-            try {
-              val taskInformation = if (deliveredTaskIds.contains(lockedTask.id)
-                && subscriptionRepository.getActiveSubscriptionForTask(lockedTask.id) == activeSubscription
-              ) {
-                // task is already delivered to the current subscription, nothing to do
-                null
-              } else {
-                // create task information and set up the reason
-                lockedTask.toTaskInformation().withReason(TaskInformation.CREATE)
-              }
-              if (taskInformation != null) {
-                subscriptionRepository.activateSubscriptionForTask(lockedTask.id, activeSubscription)
-                val variables = lockedTask.variables.filterBySubscription(activeSubscription)
-                logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-031: delivering service task ${lockedTask.id}." }
-                withThreadContextClassLoader(activeSubscription.action) {
-                  activeSubscription.action.accept(taskInformation, variables)
-                }
-                logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
-              } else {
-                logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-041: skipping task ${lockedTask.id} since it is unchanged." }
-              }
-              // remove from already delivered
+            val alreadyDelivered = deliveredTaskIds.contains(lockedTask.id)
+              && subscriptionRepository.getActiveSubscriptionForTask(lockedTask.id) == activeSubscription
+            if (alreadyDelivered) {
+              logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-041: skipping task ${lockedTask.id} since it is unchanged." }
               deliveredTaskIds.remove(lockedTask.id)
-            } catch (e: Exception) {
-              val jobRetries: Int = lockedTask.retries ?: retries
-              logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-              externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries - 1, retryTimeoutInSeconds * 1000)
-              subscriptionRepository.deactivateSubscriptionForTask(taskId = lockedTask.id)
-              logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+            } else {
+              deliverDecorated(lockedTask, activeSubscription, deliveredTaskIds)
             }
           }
         }.forEach { taskExecutionFuture ->
@@ -110,6 +92,37 @@ class EmbeddedPullServiceTaskDelivery(
     } else {
       logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-035: Pull external tasks disabled because of no active subscriptions" }
     }
+  }
+
+  private fun deliverDecorated(lockedTask: LockedExternalTask, activeSubscription: TaskSubscriptionHandle, deliveredTaskIds: MutableList<String>) {
+    val taskInformation = lockedTask.toTaskInformation().withReason(TaskInformation.CREATE)
+    val variables = try {
+      lockedTask.variables.filterBySubscription(activeSubscription)
+    } catch (e: Exception) {
+      failDelivery(lockedTask, e)
+      return
+    }
+    taskExecutionDecoration.run(taskInformation, variables) {
+      try {
+        subscriptionRepository.activateSubscriptionForTask(lockedTask.id, activeSubscription)
+        logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-031: delivering service task ${lockedTask.id}." }
+        withThreadContextClassLoader(activeSubscription.action) {
+          activeSubscription.action.accept(taskInformation, variables)
+        }
+        logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
+        deliveredTaskIds.remove(lockedTask.id)
+      } catch (e: Exception) {
+        failDelivery(lockedTask, e)
+      }
+    }
+  }
+
+  private fun failDelivery(lockedTask: LockedExternalTask, e: Exception) {
+    val jobRetries: Int = lockedTask.retries ?: retries
+    logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
+    externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries - 1, retryTimeoutInSeconds * 1000)
+    subscriptionRepository.deactivateSubscriptionForTask(taskId = lockedTask.id)
+    logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
   }
 
   private fun ExternalTaskQueryBuilder.forSubscriptions(subscriptions: List<TaskSubscriptionHandle>): ExternalTaskQueryBuilder {

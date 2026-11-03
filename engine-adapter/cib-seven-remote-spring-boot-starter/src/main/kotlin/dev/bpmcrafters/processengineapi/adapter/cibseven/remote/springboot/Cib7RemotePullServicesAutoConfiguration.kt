@@ -1,5 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.ExperimentalTaskExecutionDecoratorApi
+import dev.bpmcrafters.processengineapi.adapter.cibseven.experimental.decorator.TaskExecutionDecoration
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.CachingProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FailureRetrySupplier
@@ -86,6 +88,7 @@ class Cib7RemotePullServicesAutoConfiguration {
   @ConditionalOnServiceTaskDeliveryStrategy(
     strategy = Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SCHEDULED
   )
+@OptIn(ExperimentalTaskExecutionDecoratorApi::class)
   fun scheduledServiceTaskDelivery(
     externalTaskApi: ExternalTaskApi,
     @Qualifier("cib7remote-process-definition-meta-data-resolver")
@@ -95,7 +98,8 @@ class Cib7RemotePullServicesAutoConfiguration {
     @Qualifier("cib7remote-service-task-worker-executor")
     executor: ThreadPoolExecutor,
     valueMapper: ValueMapper,
-    metrics: PullServiceTaskDeliveryMetrics
+    metrics: PullServiceTaskDeliveryMetrics,
+    taskExecutionDecoration: TaskExecutionDecoration
   ) = PullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     workerId = c7AdapterProperties.serviceTasks.workerId,
@@ -108,7 +112,8 @@ class Cib7RemotePullServicesAutoConfiguration {
     processDefinitionMetaDataResolver = processDefinitionMetaDataResolver,
     valueMapper = valueMapper,
     deserializeOnServer = c7AdapterProperties.serviceTasks.deserializeOnServer,
-    metrics = metrics
+    metrics = metrics,
+    taskExecutionDecoration = taskExecutionDecoration
   )
 
   @Bean("cib7remote-service-task-completion-api")
