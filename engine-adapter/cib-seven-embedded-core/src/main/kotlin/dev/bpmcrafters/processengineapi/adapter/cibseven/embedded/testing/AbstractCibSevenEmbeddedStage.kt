@@ -34,6 +34,9 @@ import org.cibseven.bpm.engine.runtime.ProcessInstance
 import org.cibseven.bpm.engine.test.assertions.bpmn.BpmnAwareTests
 import org.cibseven.bpm.engine.variable.VariableMap
 import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
@@ -153,7 +156,7 @@ abstract class AbstractCibSevenEmbeddedStage<SUBTYPE : AbstractCibSevenEmbeddedS
       1000,
       1000,
       1,
-      Executors.newFixedThreadPool(1)
+      ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue())
     )
 
     taskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(

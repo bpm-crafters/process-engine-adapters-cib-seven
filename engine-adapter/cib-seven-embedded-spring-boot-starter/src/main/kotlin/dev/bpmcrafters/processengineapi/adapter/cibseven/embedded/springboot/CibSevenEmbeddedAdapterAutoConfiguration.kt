@@ -164,7 +164,7 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
    * This one is used for pull-strategies only.
    */
   @Bean("cib-seven-embedded-service-task-worker-executor")
-  @ConditionalOnMissingQualifiedBean(beanClass = ExecutorService::class, qualifier = "cib-seven-embedded-service-task-worker-executor")
+  @ConditionalOnMissingQualifiedBean(beanClass = ThreadPoolExecutor::class, qualifier = "cib-seven-embedded-service-task-worker-executor")
   @Qualifier("cib-seven-embedded-service-task-worker-executor")
   fun serviceTaskWorkerExecutor(): ThreadPoolExecutor = ThreadPoolExecutor(
     /* corePoolSize = */ 10,

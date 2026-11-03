@@ -15,6 +15,9 @@ import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.test.ProcessTestHelper
 import org.cibseven.bpm.engine.ProcessEngine
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Executors
 
 const val WORKER_ID = "execute-action-external"
@@ -42,7 +45,7 @@ class CibSevenEmbeddedProcessTestHelper(
     lockDurationInSeconds = 10L,
     retryTimeoutInSeconds = 10L,
     retries = 3,
-    executorService = Executors.newFixedThreadPool(3)
+    executorService = ThreadPoolExecutor(3, 3, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue())
   )
 
   override fun getStartProcessApi(): StartProcessApi = StartProcessApiImpl(
