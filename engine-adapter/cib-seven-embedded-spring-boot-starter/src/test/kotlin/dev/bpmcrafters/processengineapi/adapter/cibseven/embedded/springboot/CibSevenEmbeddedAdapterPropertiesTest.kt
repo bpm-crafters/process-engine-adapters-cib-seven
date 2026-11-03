@@ -5,6 +5,7 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties.UserTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties.UserTasks
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
@@ -29,6 +30,14 @@ class CibSevenEmbeddedAdapterPropertiesTest {
 
     assertThat(userTasks().copy(scheduleDeliveryFixedRate = rate).scheduleDeliveryIntervalInMilliseconds).isEqualTo(200)
     assertThat(serviceTasks().copy(scheduleDeliveryFixedRate = rate).scheduleDeliveryIntervalInMilliseconds).isEqualTo(200)
+  }
+
+  @Test
+  fun `rejects a duration below one millisecond`() {
+    assertThatThrownBy { userTasks().copy(scheduleDeliveryFixedRate = Duration.ofNanos(500_000)) }
+      .isInstanceOf(IllegalArgumentException::class.java)
+    assertThatThrownBy { serviceTasks().copy(scheduleDeliveryFixedRate = Duration.ZERO) }
+      .isInstanceOf(IllegalArgumentException::class.java)
   }
 
   private fun userTasks() = UserTasks(deliveryStrategy = UserTaskDeliveryStrategy.EMBEDDED_SCHEDULED)
