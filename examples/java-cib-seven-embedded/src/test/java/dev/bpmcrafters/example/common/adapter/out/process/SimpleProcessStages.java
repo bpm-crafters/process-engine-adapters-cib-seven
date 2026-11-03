@@ -7,13 +7,13 @@ import dev.bpmcrafters.example.common.adapter.shared.SimpleProcessWorkflowConst.
 import dev.bpmcrafters.example.common.adapter.shared.SimpleProcessWorkflowConst.Expressions;
 import dev.bpmcrafters.example.common.application.port.out.UserTaskOutPort;
 import dev.bpmcrafters.example.common.application.port.out.WorkflowOutPort;
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.testing.AbstractCib7EmbeddedStage;
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.testing.AbstractCibSevenEmbeddedStage;
 import org.cibseven.bpm.engine.variable.VariableMap;
 import org.cibseven.bpm.engine.variable.Variables;
 
 public class SimpleProcessStages {
 
-  static class ActionStage extends AbstractCib7EmbeddedStage<ActionStage> {
+  static class ActionStage extends AbstractCibSevenEmbeddedStage<ActionStage> {
 
     @ProvidedScenarioState
     private WorkflowOutPort workflowOutPort;
@@ -103,7 +103,7 @@ public class SimpleProcessStages {
     }
   }
 
-  static class AssertStage extends AbstractCib7EmbeddedStage<AssertStage> {
+  static class AssertStage extends AbstractCibSevenEmbeddedStage<AssertStage> {
 
   }
 }

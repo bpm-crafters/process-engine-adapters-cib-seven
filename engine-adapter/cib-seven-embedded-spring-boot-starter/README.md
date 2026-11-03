@@ -154,7 +154,7 @@ Application Startup
   ↓
 Spring Boot Auto-Configuration
   ↓
-Cib7EmbeddedAdapterAutoConfiguration
+CibSevenEmbeddedAdapterAutoConfiguration
   ├── Creates StartProcessApi, DeploymentApi, etc. (from cib-seven-embedded-core)
   ├── Sets up Schedulers (if EMBEDDED_SCHEDULED)
   └── Configures Task Polling Bindings
@@ -164,11 +164,11 @@ Application Ready
 
 ### Auto-Configuration Classes
 
-- **`Cib7EmbeddedAdapterAutoConfiguration`** - Main configuration, creates API beans
-- **`Cib7EmbeddedSchedulingAutoConfiguration`** - Scheduler setup for task polling
-- **`Cib7EmbeddedServiceTaskPullStrategyAutoConfiguration`** - Service task polling
-- **`Cib7EmbeddedUserTaskPullStrategyAutoConfiguration`** - User task polling
-- **`Cib7EmbeddedInitialPullOnStartupAutoConfiguration`** - Initial task pull on startup
+- **`CibSevenEmbeddedAdapterAutoConfiguration`** - Main configuration, creates API beans
+- **`CibSevenEmbeddedSchedulingAutoConfiguration`** - Scheduler setup for task polling
+- **`CibSevenEmbeddedServiceTaskPullStrategyAutoConfiguration`** - Service task polling
+- **`CibSevenEmbeddedUserTaskPullStrategyAutoConfiguration`** - User task polling
+- **`CibSevenEmbeddedInitialPullOnStartupAutoConfiguration`** - Initial task pull on startup
 
 ### Conditional Configuration
 

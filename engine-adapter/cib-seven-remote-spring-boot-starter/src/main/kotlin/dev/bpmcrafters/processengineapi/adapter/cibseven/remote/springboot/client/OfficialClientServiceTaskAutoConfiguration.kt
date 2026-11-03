@@ -1,8 +1,8 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.client
 
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterAutoConfiguration
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.Cib7RemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SUBSCRIBED
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterAutoConfiguration
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties.ExternalServiceTaskDeliveryStrategy.REMOTE_SUBSCRIBED
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.ConditionalOnServiceTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.FailureRetrySupplier
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.OfficialClientServiceTaskCompletionApiImpl
@@ -26,7 +26,7 @@ private val logger = KotlinLogging.logger {}
  * Auto-configuration for subscribed delivery using Camunda External Client.
  */
 @AutoConfiguration
-@AutoConfigureAfter(Cib7RemoteAdapterAutoConfiguration::class)
+@AutoConfigureAfter(CibSevenRemoteAdapterAutoConfiguration::class)
 @ConditionalOnServiceTaskDeliveryStrategy(
   strategy = REMOTE_SUBSCRIBED
 )
@@ -47,7 +47,7 @@ class OfficialClientServiceTaskAutoConfiguration {
   fun subscribingClientExternalTaskDelivery(
     subscriptionRepository: SubscriptionRepository,
     externalTaskClient: ExternalTaskClient,
-    c7AdapterProperties: Cib7RemoteAdapterProperties
+    c7AdapterProperties: CibSevenRemoteAdapterProperties
   ) = SubscribingServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     lockDurationInSeconds = c7AdapterProperties.serviceTasks.lockTimeInSeconds,
