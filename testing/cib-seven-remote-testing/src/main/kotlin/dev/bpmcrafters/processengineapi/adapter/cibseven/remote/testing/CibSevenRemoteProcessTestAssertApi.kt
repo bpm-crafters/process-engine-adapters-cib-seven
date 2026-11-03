@@ -66,9 +66,11 @@ internal class CibSevenRemoteProcessTestAssertApi(
   }
 
   override fun processHasPassedInOrder(instanceId: String, restrictions: Map<String, String>, vararg elementIds: String) {
-    val passedElementIds = passedElementIds(instanceId, elementIds)
+    val passedActivities = passedActivities(instanceId, elementIds)
+    val passedElementIds = passedActivities.mapNotNull { it.activityId }
     require(passedElementIds.containsInOrder(elementIds.toList())) {
-      "Expected ${elementIds.toList()} to be passed in order, actually passed: $passedElementIds"
+      "Expected ${elementIds.toList()} to be passed in order, actually passed: $passedElementIds, " +
+        "history: ${passedActivities.map { "${it.activityId}[start=${it.startTime}, end=${it.endTime}]" }}"
     }
   }
 
@@ -96,7 +98,10 @@ internal class CibSevenRemoteProcessTestAssertApi(
     }
   }
 
-  private fun passedElementIds(instanceId: String, expectedElementIds: Array<out String>): List<String> {
+  private fun passedElementIds(instanceId: String, expectedElementIds: Array<out String>): List<String> =
+    passedActivities(instanceId, expectedElementIds).mapNotNull { it.activityId }
+
+  private fun passedActivities(instanceId: String, expectedElementIds: Array<out String>): List<HistoricActivityInstanceDto> {
     require(expectedElementIds.isNotEmpty()) { "At least one element id is required." }
     val historicActivitiesInExecutionOrder = HistoricActivityInstanceQueryDto()
       .processInstanceId(instanceId)
@@ -104,7 +109,6 @@ internal class CibSevenRemoteProcessTestAssertApi(
     return historicActivityInstanceApi
       .queryHistoricActivityInstances(0, MAX_HISTORIC_ACTIVITIES, historicActivitiesInExecutionOrder)
       .sortedWith(compareBy<HistoricActivityInstanceDto> { it.startTime }.thenBy(nullsLast()) { it.endTime })
-      .mapNotNull { it.activityId }
   }
 
   private fun <T> eventually(supplier: () -> T): T =
