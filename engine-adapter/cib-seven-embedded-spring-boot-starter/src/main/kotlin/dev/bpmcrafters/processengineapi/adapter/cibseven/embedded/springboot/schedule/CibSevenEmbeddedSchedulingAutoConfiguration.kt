@@ -33,6 +33,7 @@ import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.ExecutorService
 
 private val logger = KotlinLogging.logger {}
@@ -84,7 +85,7 @@ class CibSevenEmbeddedSchedulingAutoConfiguration {
     externalTaskService: ExternalTaskService,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    executorService: ThreadPoolExecutor
   ) = EmbeddedPullServiceTaskDelivery(
     subscriptionRepository = subscriptionRepository,
     externalTaskService = externalTaskService,

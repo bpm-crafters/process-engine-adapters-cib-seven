@@ -11,7 +11,7 @@ import org.springframework.context.event.EventListener
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.scheduling.annotation.Async
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadPoolExecutor
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,7 +25,7 @@ open class CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding(
   externalTaskService: ExternalTaskService,
   subscriptionRepository: SubscriptionRepository,
   adapterProperties: CibSevenEmbeddedAdapterProperties,
-  executorService: ExecutorService
+  executorService: ThreadPoolExecutor
 ) {
   companion object {
     const val ORDER = Ordered.HIGHEST_PRECEDENCE + 1000

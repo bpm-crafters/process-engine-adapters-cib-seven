@@ -13,7 +13,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.externaltask.ExternalTaskQueryBuilder
 import org.cibseven.bpm.engine.externaltask.LockedExternalTask
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,87 +31,119 @@ class EmbeddedPullServiceTaskDelivery(
   private val lockDurationInSeconds: Long,
   private val retryTimeoutInSeconds: Long,
   private val retries: Int,
-  private val executorService: ExecutorService,
+  private val executorService: ThreadPoolExecutor,
 ) : ExternalServiceTaskDelivery, RefreshableDelivery {
+
+  private val runningTaskIds = ConcurrentHashMap.newKeySet<String>()
 
   /**
    * Delivers all tasks found in the external service to corresponding subscriptions.
+   * Fetches only as many tasks as worker threads are free and never waits for a delivered task to finish.
    */
   override fun refresh() {
 
     val subscriptions = subscriptionRepository.getTaskSubscriptions().filter { s -> s.taskType == TaskType.EXTERNAL }
-    if (subscriptions.isNotEmpty()) {
-      logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-030: pulling service tasks for subscriptions: $subscriptions" }
-      val deliveredTaskIds = subscriptionRepository.getDeliveredTaskIds(TaskType.EXTERNAL).toMutableList()
-      externalTaskService
-        .fetchAndLock(maxTasks, workerId)
-        .forSubscriptions(subscriptions)
-        .execute()
-        .parallelStream()
-        .map { lockedTask ->
-          val activeSubscription = subscriptions.firstOrNull { subscription -> subscription.matches(lockedTask) }
-          if (activeSubscription == null) {
-            logger.warn { "PROCESS-ENGINE-CIB7-EMBEDDED-044: no subscription found for fetched task ${lockedTask.id} with topic '${lockedTask.topicName}'." }
-            return@map null
-          }
-          executorService.submit {  // in another thread
-            try {
-              val taskInformation = if (deliveredTaskIds.contains(lockedTask.id)
-                && subscriptionRepository.getActiveSubscriptionForTask(lockedTask.id) == activeSubscription
-              ) {
-                // task is already delivered to the current subscription, nothing to do
-                null
-              } else {
-                // create task information and set up the reason
-                lockedTask.toTaskInformation().withReason(TaskInformation.CREATE)
-              }
-              if (taskInformation != null) {
-                subscriptionRepository.activateSubscriptionForTask(lockedTask.id, activeSubscription)
-                val variables = lockedTask.variables.filterBySubscription(activeSubscription)
-                logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-031: delivering service task ${lockedTask.id}." }
-                withThreadContextClassLoader(activeSubscription.action) {
-                  activeSubscription.action.accept(taskInformation, variables)
-                }
-                logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
-              } else {
-                logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-041: skipping task ${lockedTask.id} since it is unchanged." }
-              }
-              // remove from already delivered
-              deliveredTaskIds.remove(lockedTask.id)
-            } catch (e: Exception) {
-              val jobRetries: Int = lockedTask.retries ?: retries
-              logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-              externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries - 1, retryTimeoutInSeconds * 1000)
-              subscriptionRepository.deactivateSubscriptionForTask(taskId = lockedTask.id)
-              logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
-            }
-          }
-        }.forEach { taskExecutionFuture ->
-          taskExecutionFuture?.get()
-        }
-
-      // now we removed all still existing task ids from the list of already delivered
-      // the remaining tasks doesn't exist in the engine, lets handle them
-      deliveredTaskIds.parallelStream().map { taskId ->
-        executorService.submit {
-          // deactivate active subscription and handle termination
-          subscriptionRepository.deactivateSubscriptionForTask(taskId)?.let { subscription ->
-            withThreadContextClassLoader(subscription.termination) {
-              subscription.termination.accept(
-                TaskInformation(
-                  taskId,
-                  emptyMap()
-                ).withReason(TaskInformation.DELETE)
-              )
-            }
-          }
-          logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-043: deactivating $taskId, task is gone." }
-        }
-      }.forEach { taskTerminationFuture -> taskTerminationFuture.get() }
-
-    } else {
+    if (subscriptions.isEmpty()) {
       logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-035: Pull external tasks disabled because of no active subscriptions" }
+      return
     }
+
+    terminateTasksGoneFromEngine()
+
+    val freeWorkerThreads = executorService.maximumPoolSize - runningTaskIds.size
+    val tasksToFetch = maxTasks.coerceAtMost(freeWorkerThreads)
+    if (tasksToFetch <= 0) {
+      logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-045: No free worker thread, skipping task fetch" }
+      return
+    }
+
+    logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-030: pulling service tasks for subscriptions: $subscriptions" }
+    externalTaskService
+      .fetchAndLock(tasksToFetch, workerId)
+      .forSubscriptions(subscriptions)
+      .execute()
+      .forEach { lockedTask ->
+        val activeSubscription = subscriptions.firstOrNull { subscription -> subscription.matches(lockedTask) }
+        if (activeSubscription == null) {
+          logger.warn { "PROCESS-ENGINE-CIB7-EMBEDDED-044: no subscription found for fetched task ${lockedTask.id} with topic '${lockedTask.topicName}'." }
+        } else {
+          submitUnlessRunning(lockedTask, activeSubscription)
+        }
+      }
+  }
+
+  private fun submitUnlessRunning(lockedTask: LockedExternalTask, activeSubscription: TaskSubscriptionHandle) {
+    val taskId = lockedTask.id
+    if (!runningTaskIds.add(taskId)) {
+      logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-046: skipping task $taskId since it is still running." }
+      return
+    }
+    try {
+      executorService.submit {
+        try {
+          deliver(lockedTask, activeSubscription)
+        } finally {
+          runningTaskIds.remove(taskId)
+        }
+      }
+    } catch (e: RejectedExecutionException) {
+      runningTaskIds.remove(taskId)
+      throw e
+    }
+  }
+
+  private fun deliver(lockedTask: LockedExternalTask, activeSubscription: TaskSubscriptionHandle) {
+    try {
+      val isAlreadyDeliveredToSubscription = subscriptionRepository.getActiveSubscriptionForTask(lockedTask.id) == activeSubscription
+      if (isAlreadyDeliveredToSubscription) {
+        logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-041: skipping task ${lockedTask.id} since it is unchanged." }
+        return
+      }
+      val taskInformation = lockedTask.toTaskInformation().withReason(TaskInformation.CREATE)
+      subscriptionRepository.activateSubscriptionForTask(lockedTask.id, activeSubscription)
+      val variables = lockedTask.variables.filterBySubscription(activeSubscription)
+      logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-031: delivering service task ${lockedTask.id}." }
+      withThreadContextClassLoader(activeSubscription.action) {
+        activeSubscription.action.accept(taskInformation, variables)
+      }
+      logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
+    } catch (e: Exception) {
+      val jobRetries: Int = lockedTask.retries ?: retries
+      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
+      externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries - 1, retryTimeoutInSeconds * 1000)
+      subscriptionRepository.deactivateSubscriptionForTask(taskId = lockedTask.id)
+      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+    }
+  }
+
+  private fun terminateTasksGoneFromEngine() {
+    val idleDeliveredTaskIds = subscriptionRepository.getDeliveredTaskIds(TaskType.EXTERNAL).toSet() - runningTaskIds
+    if (idleDeliveredTaskIds.isEmpty()) {
+      return
+    }
+    val taskIdsInEngine = externalTaskService
+      .createExternalTaskQuery()
+      .externalTaskIdIn(idleDeliveredTaskIds)
+      .list()
+      .map { it.id }
+      .toSet()
+    (idleDeliveredTaskIds - taskIdsInEngine).forEach { taskId ->
+      executorService.submit { terminate(taskId) }
+    }
+  }
+
+  private fun terminate(taskId: String) {
+    subscriptionRepository.deactivateSubscriptionForTask(taskId)?.let { subscription ->
+      withThreadContextClassLoader(subscription.termination) {
+        subscription.termination.accept(
+          TaskInformation(
+            taskId,
+            emptyMap()
+          ).withReason(TaskInformation.DELETE)
+        )
+      }
+    }
+    logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-043: deactivating $taskId, task is gone." }
   }
 
   private fun ExternalTaskQueryBuilder.forSubscriptions(subscriptions: List<TaskSubscriptionHandle>): ExternalTaskQueryBuilder {
