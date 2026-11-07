@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.annotation.EnableAsync
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.ExecutorService
 
 private val logger = KotlinLogging.logger {}
@@ -61,7 +62,7 @@ class CibSevenEmbeddedInitialPullOnStartupAutoConfiguration {
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    executorService: ExecutorService
+    executorService: ThreadPoolExecutor
   ) = CibSevenEmbeddedInitialPullServiceTasksDeliveryBinding(
     externalTaskService = externalTaskService,
     subscriptionRepository = subscriptionRepository,

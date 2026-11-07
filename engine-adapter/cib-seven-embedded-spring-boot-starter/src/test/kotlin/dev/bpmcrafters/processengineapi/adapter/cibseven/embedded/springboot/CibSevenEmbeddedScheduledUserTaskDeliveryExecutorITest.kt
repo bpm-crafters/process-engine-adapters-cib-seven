@@ -13,8 +13,9 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -29,15 +30,15 @@ class CibSevenEmbeddedScheduledUserTaskDeliveryExecutorITest(
 
     @Bean("cib-seven-embedded-service-task-worker-executor")
     @Qualifier("cib-seven-embedded-service-task-worker-executor")
-    fun serviceTaskWorkerExecutor(): ExecutorService = namedExecutor("SERVICE-TASK-EXECUTOR")
+    fun serviceTaskWorkerExecutor(): ThreadPoolExecutor = namedExecutor("SERVICE-TASK-EXECUTOR")
 
     @Bean("cib-seven-embedded-user-task-worker-executor")
     @Qualifier("cib-seven-embedded-user-task-worker-executor")
-    fun userTaskWorkerExecutor(): ExecutorService = namedExecutor("USER-TASK-EXECUTOR")
+    fun userTaskWorkerExecutor(): ThreadPoolExecutor = namedExecutor("USER-TASK-EXECUTOR")
 
-    private fun namedExecutor(prefix: String): ExecutorService {
+    private fun namedExecutor(prefix: String): ThreadPoolExecutor {
       val threadCounter = AtomicInteger()
-      return Executors.newFixedThreadPool(2) { runnable ->
+      return ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue()) { runnable ->
         Thread(runnable, "$prefix-${threadCounter.incrementAndGet()}")
       }
     }
