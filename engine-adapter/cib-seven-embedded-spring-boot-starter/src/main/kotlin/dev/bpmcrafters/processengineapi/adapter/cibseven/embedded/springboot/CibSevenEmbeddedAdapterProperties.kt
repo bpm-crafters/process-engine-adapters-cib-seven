@@ -75,10 +75,13 @@ class CibSevenEmbeddedAdapterProperties(
     val workerId: String,
     /**
      * Max count of external tasks to fetch. Defaults to 100.
+     * A pull cycle never fetches more tasks than worker threads are free.
      */
     val maxTaskCount: Int = 100,
     /**
      * Time in seconds to lock external task. Default to 10.
+     * Must exceed the runtime of the slowest worker, otherwise the task is delivered again (at-least-once).
+     * Can be overridden per subscription with the `workerLockDurationInMilliseconds` restriction.
      */
     val lockTimeInSeconds: Long = 10L,
     /**
