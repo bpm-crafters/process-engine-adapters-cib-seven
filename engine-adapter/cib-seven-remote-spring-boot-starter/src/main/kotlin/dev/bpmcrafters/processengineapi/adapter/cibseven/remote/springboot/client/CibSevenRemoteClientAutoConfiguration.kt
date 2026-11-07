@@ -58,6 +58,7 @@ class CibSevenRemoteClientAutoConfiguration {
         setUsername(properties.client.username)
         setPassword(properties.client.password)
       }
+      objectMapper.registerModule(EngineDateFormatModule())
       logger.debug { "PROCESS-ENGINE-C7-REMOTE-201: REST client configured for ${properties.client.baseUrl}." }
     }
 
