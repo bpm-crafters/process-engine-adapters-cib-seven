@@ -26,24 +26,24 @@ class UserTaskModificationApiImpl(
 ) : UserTaskModificationApi {
   override fun update(cmd: ModifyTaskCmd): CompletableFuture<Empty> {
     logger.debug { "PROCESS-ENGINE-C7-REMOTE-051: modifying user task ${cmd.taskId}." }
-    if (cmd is CompositeModifyTaskCmd) {
-      cmd.commands.forEach {
-        handleCommand(it)
+    return if (cmd is CompositeModifyTaskCmd) {
+      cmd.commands.fold(CompletableFuture.completedFuture(Empty)) { future, command ->
+        future.thenCompose { handleCommand(command) }
       }
     } else {
       handleCommand(cmd)
     }
-    return CompletableFuture.completedFuture(Empty)
   }
 
-  private fun handleCommand(cmd: ModifyTaskCmd) {
+  private fun handleCommand(cmd: ModifyTaskCmd): CompletableFuture<Empty> = CompletableFuture.supplyAsync {
     logger.trace { "PROCESS-ENGINE-C7-EMBEDDED-052: handling command ${cmd}." }
     when (cmd) {
       is ChangeAssignmentModifyTaskCmd -> changeAssignment(cmd)
       is ChangePayloadModifyTaskCmd -> changePayload(cmd)
       is ChangeDatesModifyTaskCmd -> changeDates(cmd)
-      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName ?: cmd.javaClass.name}.")
     }
+    Empty
   }
 
   private fun changeAssignment(cmd: ChangeAssignmentModifyTaskCmd) {
@@ -56,7 +56,7 @@ class UserTaskModificationApiImpl(
       is SetCandidateGroupsTaskCmd -> taskIdentityLinkApi.setCandidateGroups(cmd.taskId, cmd.toIdentityLinkDtoList())
       is AddCandidateUserTaskCmd, is AddCandidateGroupTaskCmd -> taskIdentityLinkApi.addIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
       is RemoveCandidateUserTaskCmd, is RemoveCandidateGroupTaskCmd -> taskIdentityLinkApi.deleteIdentityLink(cmd.taskId, cmd.toIdentityLinkDto())
-      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName ?: cmd.javaClass.name}.")
     }
   }
 
@@ -69,7 +69,7 @@ class UserTaskModificationApiImpl(
 
       is DeletePayloadTaskCmd -> taskLocalVariableApi.removeVariablesLocal(cmd.taskId, cmd.get())
       is ClearPayloadTaskCmd -> taskLocalVariableApi.clearTaskVariablesLocal(cmd.taskId)
-      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName ?: cmd.javaClass.name}.")
     }
   }
 
@@ -108,7 +108,7 @@ class UserTaskModificationApiImpl(
       is ClearDueDateTaskCmd -> taskUpdate.due(null)
       is SetFollowUpDateTaskCmd -> taskUpdate.followUp(cmd.followUpDate)
       is ClearFollowUpDateTaskCmd -> taskUpdate.followUp(null)
-      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${cmd.javaClass.canonicalName ?: cmd.javaClass.name}.")
     }
     taskApi.updateTask(cmd.taskId, taskUpdate)
   }
@@ -135,7 +135,7 @@ class UserTaskModificationApiImpl(
         groupId = this@toIdentityLinkDto.candidateGroup
       }
 
-      else -> throw UnsupportedOperationException("Unsupported command ${javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${javaClass.canonicalName ?: javaClass.name}.")
     }
   }
 
@@ -156,7 +156,7 @@ class UserTaskModificationApiImpl(
         }
       }
 
-      else -> throw UnsupportedOperationException("Unsupported command ${javaClass.canonicalName}.")
+      else -> throw UnsupportedOperationException("Unsupported command ${javaClass.canonicalName ?: javaClass.name}.")
     }
   }
 
