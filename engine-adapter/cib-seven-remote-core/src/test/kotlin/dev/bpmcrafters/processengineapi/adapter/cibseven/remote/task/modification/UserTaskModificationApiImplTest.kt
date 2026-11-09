@@ -1,7 +1,9 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.modification
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
+import dev.bpmcrafters.processengineapi.task.ChangeAssignmentModifyTaskCmd
 import dev.bpmcrafters.processengineapi.task.ChangeDatesModifyTaskCmd
+import dev.bpmcrafters.processengineapi.task.TaskModification
 import org.assertj.core.api.Assertions.assertThat
 import org.cibseven.community.rest.client.api.TaskApi
 import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
@@ -9,15 +11,20 @@ import org.cibseven.community.rest.client.api.TaskLocalVariableApi
 import org.cibseven.community.rest.client.dto.CamundaFormRef
 import org.cibseven.community.rest.client.dto.TaskDto
 import org.cibseven.community.rest.client.dto.TaskWithAttachmentAndCommentDto
+import org.cibseven.community.rest.client.dto.UserIdDto
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import java.time.OffsetDateTime
+import java.util.concurrent.ExecutionException
 
 internal class UserTaskModificationApiImplTest {
 
@@ -65,13 +72,57 @@ internal class UserTaskModificationApiImplTest {
   fun `fail date update when task is not found`() {
     whenever(taskApi.getTask(taskId)).thenReturn(null)
 
-    val exception = assertThrows<IllegalArgumentException> {
-      api.update(ChangeDatesModifyTaskCmd.ClearFollowUpDateTaskCmd(taskId = taskId))
+    val exception = assertThrows<ExecutionException> {
+      api.update(ChangeDatesModifyTaskCmd.ClearFollowUpDateTaskCmd(taskId = taskId)).get()
     }
 
-    assertThat(exception).hasMessage("Task with id $taskId not found.")
+    assertThat(exception.cause)
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessage("Task with id $taskId not found.")
     verify(taskApi).getTask(taskId)
     verifyNoMoreInteractions(taskApi)
+  }
+
+  @Test
+  fun `return an exceptional future when a remote modification fails`() {
+    doThrow(IllegalStateException("remote failure")).whenever(taskApi).setAssignee(eq(taskId), any())
+
+    val future = api.update(ChangeAssignmentModifyTaskCmd.AssignTaskCmd(taskId, "kermit"))
+
+    val exception = assertThrows<ExecutionException> { future.get() }
+    assertThat(exception.cause)
+      .isInstanceOf(IllegalStateException::class.java)
+      .hasMessage("remote failure")
+  }
+
+  @Test
+  fun `stop a composite modification after a failed command`() {
+    doThrow(IllegalStateException("remote failure")).whenever(taskApi).setAssignee(taskId, UserIdDto().userId("kermit"))
+
+    val future = api.update(
+      TaskModification.taskModification(taskId) {
+        assign("kermit")
+        unassign()
+      }
+    )
+
+    val exception = assertThrows<ExecutionException> { future.get() }
+    assertThat(exception.cause)
+      .isInstanceOf(IllegalStateException::class.java)
+      .hasMessage("remote failure")
+    verify(taskApi).setAssignee(taskId, UserIdDto().userId("kermit"))
+    verify(taskApi, never()).setAssignee(taskId, UserIdDto())
+  }
+
+  @Test
+  fun `return an exceptional future for an unsupported command`() {
+    val unsupportedCommand = object : ChangeAssignmentModifyTaskCmd(taskId) {}
+
+    val exception = assertThrows<ExecutionException> { api.update(unsupportedCommand).get() }
+
+    assertThat(exception.cause)
+      .isInstanceOf(UnsupportedOperationException::class.java)
+      .hasMessageMatching("Unsupported command .+\\.")
   }
 
   private fun updateDate(command: ChangeDatesModifyTaskCmd): TaskDto {
