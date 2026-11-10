@@ -48,6 +48,7 @@ the real type, you want to access if reading the field. For this purpose, `TaskI
 | Key                  | Original Type  | Description                                                | Example                       |
 |----------------------|----------------|------------------------------------------------------------|-------------------------------|
 | activityId           | String         | Id of the element in BPMN (Task definition key)            | approve_service_task          |
+| activityInstanceId   | String         | Id of the activity instance of the service task            | approve_service_task:a1b2c3d4 |
 | processDefinitionId  | String         | Id of process definition (given at deployment time)        | approval_process:912834729348 |
 | processDefinitionKey | String         | Id of the process element in BPMN (Process Definition key) | approval_process              |
 | processInstanceId    | String         | Id of the process instance                                 | a1b2c3d4-...                  |
