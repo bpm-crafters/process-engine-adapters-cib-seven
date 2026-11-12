@@ -19,8 +19,10 @@ import dev.bpmcrafters.processengineapi.correlation.SignalApi
 import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
+import dev.bpmcrafters.processengineapi.impl.task.ObservedServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.TaskExecutionObserver
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
@@ -31,6 +33,7 @@ import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.RepositoryService
 import org.cibseven.bpm.engine.RuntimeService
 import org.cibseven.bpm.engine.TaskService
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -74,8 +77,12 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
 
   @Bean("cib-seven-embedded-task-subscription-api")
   @Qualifier("cib-seven-embedded-task-subscription-api")
-  fun taskSubscriptionApi(subscriptionRepository: SubscriptionRepository): TaskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(
-    subscriptionRepository = subscriptionRepository
+  fun taskSubscriptionApi(
+    subscriptionRepository: SubscriptionRepository,
+    observers: ObjectProvider<TaskExecutionObserver>
+  ): TaskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(
+    subscriptionRepository = subscriptionRepository,
+    observers = observers.orderedStream().toList()
   )
 
   @Bean("cib-seven-embedded-correlation-api")
@@ -139,14 +146,22 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
     subscriptionRepository: SubscriptionRepository,
     adapterProperties: CibSevenEmbeddedAdapterProperties,
     @Qualifier("cib-seven-embedded-failure-retry-supplier")
-    failureRetrySupplier: FailureRetrySupplier
-  ): ServiceTaskCompletionApi =
-    CibSevenServiceTaskCompletionApiImpl(
+    failureRetrySupplier: FailureRetrySupplier,
+    observers: ObjectProvider<TaskExecutionObserver>
+  ): ServiceTaskCompletionApi {
+    val completionApi = CibSevenServiceTaskCompletionApiImpl(
       workerId = adapterProperties.serviceTasks.workerId,
       externalTaskService = externalTaskService,
       subscriptionRepository = subscriptionRepository,
       failureRetrySupplier = failureRetrySupplier
     )
+    val taskExecutionObservers = observers.orderedStream().toList()
+    return if (taskExecutionObservers.isEmpty()) {
+      completionApi
+    } else {
+      ObservedServiceTaskCompletionApi(completionApi, taskExecutionObservers)
+    }
+  }
 
   @Bean("cib-seven-embedded-user-task-completion-api")
   @Qualifier("cib-seven-embedded-user-task-completion-api")

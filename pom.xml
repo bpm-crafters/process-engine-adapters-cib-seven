@@ -20,7 +20,7 @@
   <properties>
     <!-- COMMON GLOBAL -->
     <spring-boot.version>4.0.7</spring-boot.version>
-    <process-engine-api.version>1.7</process-engine-api.version>
+    <process-engine-api.version>1.8-SNAPSHOT</process-engine-api.version>
     <cibseven.version>2.2.0</cibseven.version>
     <kotlin-logging.version>8.0.6</kotlin-logging.version>
     <!-- TEST -->
@@ -67,6 +67,16 @@
         <version>1.0.1</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-api</groupId>
+        <artifactId>process-engine-api</artifactId>
+        <version>${process-engine-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-api</groupId>
+        <artifactId>process-engine-api-impl</artifactId>
+        <version>${process-engine-api.version}</version>
       </dependency>
 
       <dependency>
