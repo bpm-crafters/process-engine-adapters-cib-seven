@@ -10,7 +10,10 @@ import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pu
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.modification.UserTaskModificationApiImpl
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
+import dev.bpmcrafters.processengineapi.impl.task.ObservedServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.impl.task.ObservedUserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.TaskExecutionObserver
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -23,6 +26,7 @@ import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
 import org.cibseven.community.rest.client.api.TaskLocalVariableApi
 import org.cibseven.community.rest.client.api.TaskVariableApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
@@ -118,15 +122,22 @@ class CibSevenRemotePullServicesAutoConfiguration {
     c7AdapterProperties: CibSevenRemoteAdapterProperties,
     @Qualifier("cib-seven-remote-failure-retry-supplier")
     failureRetrySupplier: FailureRetrySupplier,
-    valueMapper: ValueMapper
-  ): ServiceTaskCompletionApi =
-    FeignServiceTaskCompletionApiImpl(
+    valueMapper: ValueMapper,
+    observers: ObjectProvider<TaskExecutionObserver>
+  ): ServiceTaskCompletionApi {
+    val completionApi = FeignServiceTaskCompletionApiImpl(
       workerId = c7AdapterProperties.serviceTasks.workerId,
       externalTaskApi = externalTaskApi,
       subscriptionRepository = subscriptionRepository,
       failureRetrySupplier = failureRetrySupplier,
       valueMapper = valueMapper
     )
+    return if (observers.orderedStream().findAny().isEmpty) {
+      completionApi
+    } else {
+      ObservedServiceTaskCompletionApi(completionApi, observers.orderedStream().toList())
+    }
+  }
 
   @Bean("cib-seven-remote-process-definition-meta-data-resolver")
   @Qualifier("cib-seven-remote-process-definition-meta-data-resolver")
@@ -176,12 +187,19 @@ class CibSevenRemotePullServicesAutoConfiguration {
     taskApi: TaskApi,
     subscriptionRepository: SubscriptionRepository,
     valueMapper: ValueMapper,
-  ): UserTaskCompletionApi =
-    UserTaskCompletionApiImpl(
+    observers: ObjectProvider<TaskExecutionObserver>
+  ): UserTaskCompletionApi {
+    val completionApi = UserTaskCompletionApiImpl(
       taskApi = taskApi,
       subscriptionRepository = subscriptionRepository,
       valueMapper = valueMapper
     )
+    return if (observers.orderedStream().findAny().isEmpty) {
+      completionApi
+    } else {
+      ObservedUserTaskCompletionApi(completionApi, observers.orderedStream().toList())
+    }
+  }
 
   /**
    * User task modification api.
