@@ -55,36 +55,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.cibseven.bpm</groupId>
-      <artifactId>cibseven-bpm-junit5</artifactId>
+      <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+      <artifactId>process-engine-adapter-cib-seven-embedded-testing</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.cibseven.bpm</groupId>
-      <artifactId>cibseven-bpm-assert</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.cibseven.community.process_test_coverage</groupId>
-      <artifactId>cibseven-process-test-coverage-junit5-platform-7</artifactId>
-      <version>2.2.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.tngtech.jgiven</groupId>
-      <artifactId>jgiven-core</artifactId>
-      <version>${jgiven.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.tngtech.jgiven</groupId>
-      <artifactId>jgiven-junit5</artifactId>
-      <version>${jgiven.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility-kotlin</artifactId>
+      <groupId>dev.bpm-crafters.process-engine-api-testing</groupId>
+      <artifactId>process-engine-api-testing-jgiven</artifactId>
       <scope>test</scope>
     </dependency>
 

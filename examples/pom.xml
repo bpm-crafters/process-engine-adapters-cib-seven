@@ -64,6 +64,16 @@
         <artifactId>process-engine-adapter-cib-seven-remote-spring-boot-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+        <artifactId>process-engine-adapter-cib-seven-embedded-testing</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-api-testing</groupId>
+        <artifactId>process-engine-api-testing-jgiven</artifactId>
+        <version>${process-engine-api-testing.version}</version>
+      </dependency>
 
     </dependencies>
   </dependencyManagement>
