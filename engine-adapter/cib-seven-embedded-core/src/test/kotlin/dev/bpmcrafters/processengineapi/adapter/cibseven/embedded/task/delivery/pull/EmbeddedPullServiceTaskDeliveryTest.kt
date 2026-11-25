@@ -113,6 +113,29 @@ class EmbeddedPullServiceTaskDeliveryTest {
     assertThat(subscription.matches(lockedTask)).isFalse()
   }
 
+  @Test
+  fun `matches a task without tenant only when requested without tenant`() {
+    val subscription = TaskSubscriptionHandle(
+      taskType = TaskType.EXTERNAL,
+      payloadDescription = null,
+      restrictions = mapOf(CommonRestrictions.WITHOUT_TENANT_ID to "true"),
+      taskDescriptionKey = "test-topic",
+      action = { _, _ -> },
+      termination = {}
+    )
+    val taskWithoutTenant: LockedExternalTask = mock {
+      on { topicName }.thenReturn("test-topic")
+      on { tenantId }.thenReturn(null)
+    }
+    val taskWithTenant: LockedExternalTask = mock {
+      on { topicName }.thenReturn("test-topic")
+      on { tenantId }.thenReturn("tenant-1")
+    }
+
+    assertThat(subscription.matches(taskWithoutTenant)).isTrue()
+    assertThat(subscription.matches(taskWithTenant)).isFalse()
+  }
+
   /**
    * Reproduces the class loader bug: the worker thread that executes the handler runs with an isolated
    * context class loader that cannot see application classes (e.g. a Spring-Boot fat-jar nested class loader).
