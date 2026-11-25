@@ -20,6 +20,7 @@ import dev.bpmcrafters.processengineapi.deploy.DeploymentApi
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.ObservedServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.impl.task.ObservedUserTaskCompletionApi
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.TaskExecutionObserver
@@ -167,12 +168,20 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
   @Qualifier("cib-seven-embedded-user-task-completion-api")
   fun userTaskCompletionApi(
     taskService: TaskService,
-    subscriptionRepository: SubscriptionRepository
-  ): UserTaskCompletionApi =
-    CibSevenUserTaskCompletionApiImpl(
+    subscriptionRepository: SubscriptionRepository,
+    observers: ObjectProvider<TaskExecutionObserver>
+  ): UserTaskCompletionApi {
+    val completionApi = CibSevenUserTaskCompletionApiImpl(
       taskService = taskService,
       subscriptionRepository = subscriptionRepository
     )
+    val taskExecutionObservers = observers.orderedStream().toList()
+    return if (taskExecutionObservers.isEmpty()) {
+      completionApi
+    } else {
+      ObservedUserTaskCompletionApi(completionApi, taskExecutionObservers)
+    }
+  }
 
   /**
    * Creates a default fixed thread pool for 10 threads used for process engine worker executions.
