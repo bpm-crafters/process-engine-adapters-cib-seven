@@ -73,6 +73,10 @@ class CibSevenRemoteAdapterProperties(
      */
     val executeInitialPullOnStartup: Boolean = true,
     /**
+     * Should the initial pull run asynchronously on the user task worker executor.
+     */
+    val executeInitialPullAsync: Boolean = false,
+    /**
      * Should variables be deserialized on server?
      */
     val deserializeOnServer: Boolean = false,
@@ -122,6 +126,10 @@ class CibSevenRemoteAdapterProperties(
      * Should an initial pull be executed on startup.
      */
     val executeInitialPullOnStartup: Boolean = true,
+    /**
+     * Should the initial pull run asynchronously on the service task worker executor.
+     */
+    val executeInitialPullAsync: Boolean = false,
     /**
      * Default initial number of retries.
      */

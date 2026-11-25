@@ -66,6 +66,10 @@ class CibSevenEmbeddedAdapterProperties(
      */
     val executeInitialPullOnStartup: Boolean = true,
     /**
+     * Should the initial pull run asynchronously on the user task worker executor.
+     */
+    val executeInitialPullAsync: Boolean = false,
+    /**
      * Delay between scheduled deliveries, e.g. `200ms`. Takes precedence over `schedule-delivery-fixed-rate-in-seconds`. Must be at least 1ms.
      */
     val scheduleDeliveryFixedRate: Duration? = null,
@@ -115,6 +119,10 @@ class CibSevenEmbeddedAdapterProperties(
      * Should an initial pull be executed on startup.
      */
     val executeInitialPullOnStartup: Boolean = true,
+    /**
+     * Should the initial pull run asynchronously on the service task worker executor.
+     */
+    val executeInitialPullAsync: Boolean = false,
     /**
      * Default initial number of retries.
      */

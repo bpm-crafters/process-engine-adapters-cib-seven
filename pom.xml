@@ -21,6 +21,7 @@
     <!-- COMMON GLOBAL -->
     <spring-boot.version>4.0.7</spring-boot.version>
     <process-engine-api.version>1.8</process-engine-api.version>
+    <process-engine-api-lifecycle-spring-boot.version>2026.11.2</process-engine-api-lifecycle-spring-boot.version>
     <cibseven.version>2.2.0</cibseven.version>
     <kotlin-logging.version>8.0.7</kotlin-logging.version>
     <!-- TEST -->
@@ -78,6 +79,11 @@
         <groupId>dev.bpm-crafters.process-engine-api</groupId>
         <artifactId>process-engine-api-impl</artifactId>
         <version>${process-engine-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.bpm-crafters.process-engine-api</groupId>
+        <artifactId>process-engine-api-lifecycle-spring-boot</artifactId>
+        <version>${process-engine-api-lifecycle-spring-boot.version}</version>
       </dependency>
 
       <dependency>

@@ -39,10 +39,12 @@ dev:
             max-task-count: 100
             lock-time-in-seconds: 10
             execute-initial-pull-on-startup: true
+            execute-initial-pull-async: false
             schedule-delivery-fixed-rate: 30s
           user-tasks:
             delivery-strategy: remote_scheduled   # remote_scheduled | custom | disabled
             execute-initial-pull-on-startup: true
+            execute-initial-pull-async: false
             schedule-delivery-fixed-rate: 30s
 ```
 
@@ -70,6 +72,17 @@ dev:
 | `remote_scheduled`  | The adapter periodically queries user tasks over REST (pull), using its own scheduler. |
 | `custom`            | You provide your own delivery beans.                                                 |
 | `disabled`          | No user task delivery.                                                               |
+
+## Initial pull and lifecycle
+
+The starter drives task delivery with the process application lifecycle of `process-engine-api-lifecycle-spring-boot`. Register your task subscriptions when the `TaskSubscriptionRegistrationEvent` is published, for example in an `@EventListener`. Initial pulls run when the process application enters the `RUNNING` phase, after all task subscriptions are registered. Scheduled delivery (`remote_scheduled`) starts in the same phase and is cancelled at `STOPPING`; pulls that are already running finish.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `service-tasks.execute-initial-pull-on-startup` | not set | Runs one service task pull when the process application enters `RUNNING`. Set it to `true` explicitly; without the property no initial pull runs. |
+| `service-tasks.execute-initial-pull-async` | `false` | Runs the initial service task pull on the service task worker executor. By default `RUNNING` is reached only after the initial pull has returned. |
+| `user-tasks.execute-initial-pull-on-startup` | not set | Runs one user task pull when the process application enters `RUNNING`. Set it to `true` explicitly; without the property no initial pull runs. |
+| `user-tasks.execute-initial-pull-async` | `false` | Runs the initial user task pull on the user task worker executor. By default `RUNNING` is reached only after the initial pull has returned. |
 
 ## Scheduled delivery interval
 
