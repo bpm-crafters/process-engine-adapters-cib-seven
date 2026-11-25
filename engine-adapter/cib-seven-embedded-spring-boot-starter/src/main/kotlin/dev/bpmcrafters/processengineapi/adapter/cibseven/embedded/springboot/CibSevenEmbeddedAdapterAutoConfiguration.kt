@@ -156,11 +156,10 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
       subscriptionRepository = subscriptionRepository,
       failureRetrySupplier = failureRetrySupplier
     )
-    val taskExecutionObservers = observers.orderedStream().toList()
-    return if (taskExecutionObservers.isEmpty()) {
+    return if (observers.orderedStream().findAny().isEmpty) {
       completionApi
     } else {
-      ObservedServiceTaskCompletionApi(completionApi, taskExecutionObservers)
+      ObservedServiceTaskCompletionApi(completionApi, observers.orderedStream().toList())
     }
   }
 
@@ -175,11 +174,10 @@ class CibSevenEmbeddedAdapterAutoConfiguration {
       taskService = taskService,
       subscriptionRepository = subscriptionRepository
     )
-    val taskExecutionObservers = observers.orderedStream().toList()
-    return if (taskExecutionObservers.isEmpty()) {
+    return if (observers.orderedStream().findAny().isEmpty) {
       completionApi
     } else {
-      ObservedUserTaskCompletionApi(completionApi, taskExecutionObservers)
+      ObservedUserTaskCompletionApi(completionApi, observers.orderedStream().toList())
     }
   }
 
