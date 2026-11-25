@@ -33,10 +33,10 @@ CIB Seven Engine (v2.1.0)
 
 **Task Management:**
 
-- `Cib7TaskSubscriptionApiImpl` - Subscribe to external/service tasks
-- `Cib7ServiceTaskCompletionApiImpl` - Complete service tasks
-- `Cib7UserTaskCompletionApiImpl` - Complete user tasks
-- `Cib7UserTaskModificationApiImpl` - Modify user task properties
+- `CibSevenTaskSubscriptionApiImpl` - Subscribe to external/service tasks
+- `CibSevenServiceTaskCompletionApiImpl` - Complete service tasks
+- `CibSevenUserTaskCompletionApiImpl` - Complete user tasks
+- `CibSevenUserTaskModificationApiImpl` - Modify user task properties
 
 **Message & Signal:**
 
@@ -82,8 +82,8 @@ val processEngine: ProcessEngine = // ... your engine initialization
 
 // Create API implementations
 val startProcessApi = StartProcessApiImpl(processEngine)
-val taskSubscriptionApi = Cib7TaskSubscriptionApiImpl(processEngine)
-val taskCompletionApi = Cib7ServiceTaskCompletionApiImpl(processEngine)
+val taskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(processEngine)
+val taskCompletionApi = CibSevenServiceTaskCompletionApiImpl(processEngine)
 
 // Use the APIs
 val processInstance = startProcessApi.startProcessByDefinitionKey(

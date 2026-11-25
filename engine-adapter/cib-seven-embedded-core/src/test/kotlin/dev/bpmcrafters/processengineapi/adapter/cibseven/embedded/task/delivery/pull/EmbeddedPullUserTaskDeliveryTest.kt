@@ -1,7 +1,7 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.process.CachingProcessDefinitionMetaDataResolver
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.subscription.Cib7TaskSubscriptionApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.subscription.CibSevenTaskSubscriptionApiImpl
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
@@ -92,7 +92,7 @@ internal class EmbeddedPullUserTaskDeliveryTest {
     val terminatedViaUserTaskSupport = ConcurrentHashMap<String, String>()
 
 
-    userTaskSupport.subscribe(taskSubscriptionApi = Cib7TaskSubscriptionApiImpl(subscriptionRepository), restrictions = mapOf(), payloadDescription = null)
+    userTaskSupport.subscribe(taskSubscriptionApi = CibSevenTaskSubscriptionApiImpl(subscriptionRepository), restrictions = mapOf(), payloadDescription = null)
 
     userTaskSupport.addHandler { taskInformation, _ ->
       synchronized(deliveredViaUserTaskSupport) {

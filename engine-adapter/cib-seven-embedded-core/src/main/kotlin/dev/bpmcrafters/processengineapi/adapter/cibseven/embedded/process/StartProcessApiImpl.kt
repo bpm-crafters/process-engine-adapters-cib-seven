@@ -36,10 +36,11 @@ class StartProcessApiImpl(
       is StartProcessByDefinitionCmd ->
         commandExecutor.execute {
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-004: starting a new process instance by definition ${cmd.definitionKey}." }
-          ensureSupported(cmd.restrictions)
+          val restrictions = ensureSupported(cmd.restrictions)
+          ensureDefinitionKeyMatches(cmd.definitionKey, restrictions)
           val payload = cmd.payloadSupplier.get()
           val businessKey = payload[CommonRestrictions.BUSINESS_KEY]?.toString()
-          val tenantId = cmd.restrictions[CommonRestrictions.TENANT_ID]
+          val tenantId = restrictions[CommonRestrictions.TENANT_ID]
           if (!tenantId.isNullOrBlank()) {
             val processDefinition = repositoryService
               .createProcessDefinitionQuery()
@@ -67,13 +68,18 @@ class StartProcessApiImpl(
         commandExecutor.execute {
           logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-005: starting a new process instance by message ${cmd.messageName}." }
           val payload = cmd.payloadSupplier.get()
+          val restrictions = ensureSupported(cmd.restrictions)
           var correlationBuilder = runtimeService.createMessageCorrelation(cmd.messageName)
+          val restrictedDefinitionKey = restrictions[CommonRestrictions.PROCESS_DEFINITION_KEY]
+          if (restrictedDefinitionKey != null) {
+            correlationBuilder = correlationBuilder.processDefinitionId(resolveProcessDefinitionId(restrictedDefinitionKey, restrictions))
+          }
           val businessKey = payload[CommonRestrictions.BUSINESS_KEY]
           if (businessKey != null) {
             correlationBuilder = correlationBuilder.processInstanceBusinessKey(businessKey.toString())
           }
           correlationBuilder
-            .applyTenantRestrictions(ensureSupported(cmd.restrictions))
+            .applyTenantRestrictions(restrictions)
             .setVariables(payload)
             .correlateStartMessage()
             .toProcessInformation(processDefinitionMetaDataResolver)
@@ -122,9 +128,31 @@ class StartProcessApiImpl(
   }
 
   override fun getSupportedRestrictions(): Set<String> = setOf(
+    CommonRestrictions.PROCESS_DEFINITION_KEY,
     CommonRestrictions.TENANT_ID,
     CommonRestrictions.WITHOUT_TENANT_ID,
   )
+
+  private fun ensureDefinitionKeyMatches(definitionKey: String, restrictions: Map<String, String>) {
+    val restrictedDefinitionKey = restrictions[CommonRestrictions.PROCESS_DEFINITION_KEY] ?: return
+    require(restrictedDefinitionKey == definitionKey) {
+      "Process definition key restriction '$restrictedDefinitionKey' does not match requested definition '$definitionKey'."
+    }
+  }
+
+  private fun resolveProcessDefinitionId(definitionKey: String, restrictions: Map<String, String>): String {
+    val query = repositoryService.createProcessDefinitionQuery()
+      .processDefinitionKey(definitionKey)
+      .active()
+      .latestVersion()
+    restrictions[CommonRestrictions.TENANT_ID]?.let { query.tenantIdIn(it) }
+    if (restrictions.containsKey(CommonRestrictions.WITHOUT_TENANT_ID)) {
+      query.withoutTenantId()
+    }
+    val processDefinition = query.singleResult()
+    requireNotNull(processDefinition) { "No active process definition '$definitionKey' matches the requested tenant restrictions." }
+    return processDefinition.id
+  }
 }
 
 fun ProcessInstance.toProcessInformation(processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver) = ProcessInformation(
@@ -134,6 +162,7 @@ fun ProcessInstance.toProcessInformation(processDefinitionMetaDataResolver: Proc
     CommonRestrictions.BUSINESS_KEY to this.businessKey,
     CommonRestrictions.TENANT_ID to this.tenantId,
     "rootProcessInstanceId" to this.rootProcessInstanceId,
+    CommonRestrictions.PROCESS_INSTANCE_ID to this.id,
     CommonRestrictions.PROCESS_DEFINITION_ID to this.processDefinitionId,
   )
 )

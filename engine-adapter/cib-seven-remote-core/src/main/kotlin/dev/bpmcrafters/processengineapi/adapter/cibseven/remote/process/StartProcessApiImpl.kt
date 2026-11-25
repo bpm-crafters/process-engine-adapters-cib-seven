@@ -30,6 +30,7 @@ class StartProcessApiImpl(
         CompletableFuture.supplyAsync {
           logger.debug { "PROCESS-ENGINE-C7-REMOTE-004: starting a new process instance by definition ${cmd.definitionKey}." }
           ensureSupported(cmd.restrictions)
+          ensureDefinitionKeyMatches(cmd.definitionKey, cmd.restrictions)
           val payload = cmd.payloadSupplier.get()
           val tenantId = cmd.restrictions[CommonRestrictions.TENANT_ID]
           val processDefinitionId = getProcessDefinitionId(cmd.definitionKey, tenantId)
@@ -123,6 +124,7 @@ class StartProcessApiImpl(
   }
 
   override fun getSupportedRestrictions(): Set<String> = setOf(
+    CommonRestrictions.PROCESS_DEFINITION_KEY,
     CommonRestrictions.TENANT_ID
   )
 
@@ -133,6 +135,13 @@ class StartProcessApiImpl(
   private fun getProcessDefinitionId(processKey: String, tenantId: String?): String {
     val definitionId = processDefinitionMetaDataResolver.getProcessDefinitionId(processDefinitionKey = processKey, tenantId = tenantId)
     return requireNotNull(definitionId) { "Could not find process definition id for key $processKey and tenant $tenantId." }
+  }
+
+  private fun ensureDefinitionKeyMatches(definitionKey: String, restrictions: Map<String, String>) {
+    val restrictedDefinitionKey = restrictions[CommonRestrictions.PROCESS_DEFINITION_KEY] ?: return
+    require(restrictedDefinitionKey == definitionKey) {
+      "Process definition key restriction '$restrictedDefinitionKey' does not match requested definition '$definitionKey'."
+    }
   }
 
 }
@@ -148,6 +157,7 @@ fun ProcessInstanceWithVariablesDto.toProcessInformation() = ProcessInformation(
     CommonRestrictions.BUSINESS_KEY to this.businessKey,
     CommonRestrictions.TENANT_ID to this.tenantId,
     CommonRestrictions.PROCESS_DEFINITION_ID to this.definitionId,
+    CommonRestrictions.PROCESS_INSTANCE_ID to this.id,
   )
 )
 
@@ -158,6 +168,7 @@ fun ProcessInstanceDto.toProcessInformation() = ProcessInformation(
     CommonRestrictions.BUSINESS_KEY to this.businessKey,
     CommonRestrictions.TENANT_ID to this.tenantId,
     CommonRestrictions.PROCESS_DEFINITION_ID to this.definitionId,
+    CommonRestrictions.PROCESS_INSTANCE_ID to this.id,
   )
 )
 

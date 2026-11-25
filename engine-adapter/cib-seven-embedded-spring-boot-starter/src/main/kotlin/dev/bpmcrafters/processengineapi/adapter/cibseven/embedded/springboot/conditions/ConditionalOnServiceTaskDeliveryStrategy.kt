@@ -1,6 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions
 
-import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.Cib7EmbeddedAdapterProperties.ExternalServiceTaskDeliveryStrategy
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties.ExternalServiceTaskDeliveryStrategy
 import org.springframework.context.annotation.Conditional
 
 /**

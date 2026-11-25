@@ -56,6 +56,14 @@ Two service-task delivery strategies are supported, selectable via
 
 User tasks are delivered via `remote_scheduled` (pull) by querying the task list over REST.
 
+The delivery strategy controls only adapter-managed delivery:
+
+- User-task completion and modification are command-side REST APIs. They are available for every user-task delivery
+  strategy, including `custom` and `disabled`.
+- `disabled` service-task delivery provides a no-op `ServiceTaskCompletionApi`.
+- `custom` service-task delivery provides neither delivery nor a `ServiceTaskCompletionApi`: the custom integration
+  owns both, including the matching lock and worker context.
+
 ## Task client operations
 
 In CIB Seven's REST API the task identity-link and (local) variable operations live on their own OpenAPI

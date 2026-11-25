@@ -97,13 +97,13 @@ dev:
             lock-time-in-seconds: 10       # How long to lock fetched tasks
             max-task-count: 100            # Max tasks to fetch per poll
             retry-timeout-in-seconds: 30   # Retry timeout for failed tasks
-            schedule-delivery-fixed-rate-in-seconds: 10  # Polling interval
+            schedule-delivery-fixed-rate: 10s            # Polling delay, e.g. 200ms
             execute-initial-pull-on-startup: true        # Pull tasks on startup
             retries: 3                     # Default retry count for tasks
 
           user-tasks:
             delivery-strategy: embedded_scheduled
-            schedule-delivery-fixed-rate-in-seconds: 5   # Polling interval
+            schedule-delivery-fixed-rate: 5s             # Polling delay, e.g. 200ms
             execute-initial-pull-on-startup: true        # Pull tasks on startup
 ```
 
@@ -154,7 +154,7 @@ Application Startup
   ↓
 Spring Boot Auto-Configuration
   ↓
-Cib7EmbeddedAdapterAutoConfiguration
+CibSevenEmbeddedAdapterAutoConfiguration
   ├── Creates StartProcessApi, DeploymentApi, etc. (from cib-seven-embedded-core)
   ├── Sets up Schedulers (if EMBEDDED_SCHEDULED)
   └── Configures Task Polling Bindings
@@ -164,11 +164,11 @@ Application Ready
 
 ### Auto-Configuration Classes
 
-- **`Cib7EmbeddedAdapterAutoConfiguration`** - Main configuration, creates API beans
-- **`Cib7EmbeddedSchedulingAutoConfiguration`** - Scheduler setup for task polling
-- **`Cib7EmbeddedServiceTaskPullStrategyAutoConfiguration`** - Service task polling
-- **`Cib7EmbeddedUserTaskPullStrategyAutoConfiguration`** - User task polling
-- **`Cib7EmbeddedInitialPullOnStartupAutoConfiguration`** - Initial task pull on startup
+- **`CibSevenEmbeddedAdapterAutoConfiguration`** - Main configuration, creates API beans
+- **`CibSevenEmbeddedSchedulingAutoConfiguration`** - Scheduler setup for task polling
+- **`CibSevenEmbeddedServiceTaskPullStrategyAutoConfiguration`** - Service task polling
+- **`CibSevenEmbeddedUserTaskPullStrategyAutoConfiguration`** - User task polling
+- **`CibSevenEmbeddedInitialPullOnStartupAutoConfiguration`** - Initial task pull on startup
 
 ### Conditional Configuration
 

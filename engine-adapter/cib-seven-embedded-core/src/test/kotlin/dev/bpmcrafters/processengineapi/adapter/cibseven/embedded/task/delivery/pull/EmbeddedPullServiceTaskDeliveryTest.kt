@@ -6,6 +6,8 @@ import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
 import dev.bpmcrafters.processengineapi.task.TaskType
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import org.cibseven.bpm.engine.ExternalTaskService
 import org.cibseven.bpm.engine.externaltask.ExternalTaskQueryBuilder
 import org.cibseven.bpm.engine.externaltask.ExternalTaskQueryTopicBuilder
@@ -15,7 +17,10 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class EmbeddedPullServiceTaskDeliveryTest {
@@ -35,7 +40,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
     lockDurationInSeconds = DEFAULT_LOCK_DURATION_SECONDS,
     retryTimeoutInSeconds = 10L,
     retries = 3,
-    executorService = Executors.newSingleThreadExecutor()
+    executorService = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue())
   )
 
   @Test
@@ -108,6 +113,29 @@ class EmbeddedPullServiceTaskDeliveryTest {
     assertThat(subscription.matches(lockedTask)).isFalse()
   }
 
+  @Test
+  fun `matches a task without tenant only when requested without tenant`() {
+    val subscription = TaskSubscriptionHandle(
+      taskType = TaskType.EXTERNAL,
+      payloadDescription = null,
+      restrictions = mapOf(CommonRestrictions.WITHOUT_TENANT_ID to "true"),
+      taskDescriptionKey = "test-topic",
+      action = { _, _ -> },
+      termination = {}
+    )
+    val taskWithoutTenant: LockedExternalTask = mock {
+      on { topicName }.thenReturn("test-topic")
+      on { tenantId }.thenReturn(null)
+    }
+    val taskWithTenant: LockedExternalTask = mock {
+      on { topicName }.thenReturn("test-topic")
+      on { tenantId }.thenReturn("tenant-1")
+    }
+
+    assertThat(subscription.matches(taskWithoutTenant)).isTrue()
+    assertThat(subscription.matches(taskWithTenant)).isFalse()
+  }
+
   /**
    * Reproduces the class loader bug: the worker thread that executes the handler runs with an isolated
    * context class loader that cannot see application classes (e.g. a Spring-Boot fat-jar nested class loader).
@@ -118,7 +146,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
   fun `handler runs with its own class loader despite isolated worker class loader`() {
     val applicationClassName = javaClass.name
     val observedContextClassLoader = AtomicReference<ClassLoader>()
-    var handlerLoadedApplicationClass = false
+    val handlerLoadedApplicationClass = AtomicBoolean(false)
 
     val subscription = TaskSubscriptionHandle(
       taskType = TaskType.EXTERNAL,
@@ -129,7 +157,7 @@ class EmbeddedPullServiceTaskDeliveryTest {
         val contextClassLoader = Thread.currentThread().contextClassLoader
         observedContextClassLoader.set(contextClassLoader)
         contextClassLoader.loadClass(applicationClassName)
-        handlerLoadedApplicationClass = true
+        handlerLoadedApplicationClass.set(true)
       },
       termination = {}
     )
@@ -160,13 +188,13 @@ class EmbeddedPullServiceTaskDeliveryTest {
       lockDurationInSeconds = DEFAULT_LOCK_DURATION_SECONDS,
       retryTimeoutInSeconds = 10L,
       retries = 3,
-      executorService = Executors.newSingleThreadExecutor(ThreadContextClassLoaderThreadFactory(workerContextClassLoader))
+      executorService = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue(), ThreadContextClassLoaderThreadFactory(workerContextClassLoader))
     )
 
     deliveryWithIsolatedWorker.refresh()
 
     // The handler could load the application class, i.e. the delivery switched to the handler's class loader.
-    assertThat(handlerLoadedApplicationClass).isTrue()
+    await untilAsserted { assertThat(handlerLoadedApplicationClass.get()).isTrue() }
     assertThat(observedContextClassLoader.get()).isSameAs(javaClass.classLoader)
   }
 }
