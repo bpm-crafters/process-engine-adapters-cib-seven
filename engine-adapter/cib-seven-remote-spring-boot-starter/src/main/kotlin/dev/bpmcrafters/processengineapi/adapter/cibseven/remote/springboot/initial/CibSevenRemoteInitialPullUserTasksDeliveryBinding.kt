@@ -1,7 +1,6 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.CibSevenRemoteAdapterProperties
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot.initial.CibSevenRemoteInitialPullUserTasksDeliveryBinding.Companion.ORDER
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.process.ProcessDefinitionMetaDataResolver
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
@@ -10,11 +9,6 @@ import org.cibseven.community.rest.client.api.TaskApi
 import org.cibseven.community.rest.client.api.TaskIdentityLinkApi
 import org.cibseven.community.rest.client.api.TaskVariableApi
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.variables.ValueMapper
-import org.springframework.boot.context.event.ApplicationStartedEvent
-import org.springframework.context.event.EventListener
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
-import org.springframework.scheduling.annotation.Async
 import java.util.concurrent.ExecutorService
 
 private val logger = KotlinLogging.logger {}
@@ -24,21 +18,16 @@ private val logger = KotlinLogging.logger {}
  * We are not relying on the pull delivery strategy configured centrally, because for other deliveries we still want to
  * execute an initial pull (e.g. for event-based delivery)
  */
-@Order(ORDER)
 open class CibSevenRemoteInitialPullUserTasksDeliveryBinding(
   subscriptionRepository: SubscriptionRepository,
   processDefinitionMetaDataResolver: ProcessDefinitionMetaDataResolver,
   taskApi: TaskApi,
   taskIdentityLinkApi: TaskIdentityLinkApi,
   taskVariableApi: TaskVariableApi,
-  executorService: ExecutorService,
+  private val executorService: ExecutorService,
   valueMapper: ValueMapper,
-  c7RemoteAdapterProperties: CibSevenRemoteAdapterProperties
+  private val c7RemoteAdapterProperties: CibSevenRemoteAdapterProperties
 ) {
-
-  companion object {
-    const val ORDER = Ordered.HIGHEST_PRECEDENCE + 2000
-  }
 
   private val pullUserTaskDelivery = PullUserTaskDelivery(
     subscriptionRepository = subscriptionRepository,
@@ -51,9 +40,15 @@ open class CibSevenRemoteInitialPullUserTasksDeliveryBinding(
     deserializeOnServer = c7RemoteAdapterProperties.userTasks.deserializeOnServer
   )
 
-  @EventListener
-  @Async
-  open fun pullUserTasks(event: ApplicationStartedEvent) {
+  open fun pullUserTasks() {
+    if (c7RemoteAdapterProperties.userTasks.executeInitialPullAsync) {
+      executorService.execute { deliverUserTasks() }
+    } else {
+      deliverUserTasks()
+    }
+  }
+
+  private fun deliverUserTasks() {
     logger.trace { "PROCESS-ENGINE-C7-REMOTE-103: Delivering user tasks..." }
     pullUserTaskDelivery.refresh()
     logger.trace { "PROCESS-ENGINE-C7-REMOTE-104: Delivered user tasks." }

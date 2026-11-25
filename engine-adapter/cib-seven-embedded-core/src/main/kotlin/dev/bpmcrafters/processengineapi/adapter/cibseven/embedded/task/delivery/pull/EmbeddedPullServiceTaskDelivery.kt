@@ -177,6 +177,7 @@ internal fun TaskSubscriptionHandle.matches(task: LockedExternalTask): Boolean =
           CommonRestrictions.ACTIVITY_ID -> value == task.activityId
           CommonRestrictions.BUSINESS_KEY -> value == task.businessKey
           CommonRestrictions.TENANT_ID -> value == task.tenantId
+          CommonRestrictions.WITHOUT_TENANT_ID -> task.tenantId.isNullOrBlank()
           CommonRestrictions.PROCESS_INSTANCE_ID -> value == task.processInstanceId
           CommonRestrictions.PROCESS_DEFINITION_KEY -> value == task.processDefinitionKey
           CommonRestrictions.PROCESS_DEFINITION_ID -> value == task.processDefinitionId

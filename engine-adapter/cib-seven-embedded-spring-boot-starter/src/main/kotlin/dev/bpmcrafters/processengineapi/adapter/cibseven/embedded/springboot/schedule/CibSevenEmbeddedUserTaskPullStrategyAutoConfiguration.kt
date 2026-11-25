@@ -1,13 +1,20 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.schedule
 
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties.UserTaskDeliveryStrategy
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.conditions.ConditionalOnUserTaskDeliveryStrategy
+import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.registerParticipant
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
+import dev.bpmcrafters.processengineapi.lifecycle.ProcessApplicationLifecycle
+import dev.bpmcrafters.processengineapi.lifecycle.ProcessApplicationPhase
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.context.annotation.Configuration
-import org.springframework.scheduling.annotation.Scheduled
-import java.util.concurrent.TimeUnit.MILLISECONDS
+import org.springframework.scheduling.TaskScheduler
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.ScheduledFuture
 
 private val logger = KotlinLogging.logger {}
 
@@ -20,15 +27,40 @@ private val logger = KotlinLogging.logger {}
 )
 @AutoConfigureAfter(CibSevenEmbeddedSchedulingAutoConfiguration::class)
 class CibSevenEmbeddedUserTaskPullStrategyAutoConfiguration(
-  private val embeddedPullUserTaskDelivery: EmbeddedPullUserTaskDelivery
+  private val embeddedPullUserTaskDelivery: EmbeddedPullUserTaskDelivery,
+  private val adapterProperties: CibSevenEmbeddedAdapterProperties,
+  @Qualifier("cib-seven-embedded-task-scheduler")
+  private val taskScheduler: TaskScheduler,
+  lifecycle: ProcessApplicationLifecycle
 ) {
+  private var scheduledDelivery: ScheduledFuture<*>? = null
 
-  @Scheduled(
-    fixedDelayString = "#{@'dev.bpm-crafters.process-api.adapter.cib-seven-embedded-dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot.CibSevenEmbeddedAdapterProperties'.userTasks.scheduleDeliveryIntervalInMilliseconds}",
-    timeUnit = MILLISECONDS,
-    scheduler = "cib-seven-embedded-task-scheduler"
-  )
-  fun refresh() {
+  init {
+    lifecycle.registerParticipant(ProcessApplicationPhase.RUNNING) { start() }
+    lifecycle.registerParticipant(ProcessApplicationPhase.STOPPING) { stop() }
+  }
+
+  @Synchronized
+  fun start() {
+    if (scheduledDelivery != null) {
+      return
+    }
+
+    val deliveryInterval = Duration.ofMillis(adapterProperties.userTasks.scheduleDeliveryIntervalInMilliseconds)
+    scheduledDelivery = taskScheduler.scheduleWithFixedDelay(
+      { refresh() },
+      Instant.now().plus(deliveryInterval),
+      deliveryInterval
+    )
+  }
+
+  @Synchronized
+  fun stop() {
+    scheduledDelivery?.cancel(false)
+    scheduledDelivery = null
+  }
+
+  private fun refresh() {
     logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-107: Delivering user tasks..." }
     embeddedPullUserTaskDelivery.refresh()
     logger.trace { "PROCESS-ENGINE-CIB7-EMBEDDED-108: Delivered user tasks." }

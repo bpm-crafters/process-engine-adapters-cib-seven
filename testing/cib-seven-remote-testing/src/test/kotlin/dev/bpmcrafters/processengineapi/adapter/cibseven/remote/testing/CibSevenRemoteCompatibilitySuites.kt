@@ -36,6 +36,8 @@ class CibSevenRemoteExternalTaskCompatibilityTest : ExternalTaskCompatibilitySui
     override fun definitionKey() = "contract-external-task"
     override fun externalTaskDescriptionKey() = "contract-worker"
     override fun endElementId() = "end"
+    override fun bpmnErrorCode() = "CONTRACT_BUSINESS_ERROR"
+    override fun bpmnErrorEndElementId() = "errorEnd"
   }
 }
 
