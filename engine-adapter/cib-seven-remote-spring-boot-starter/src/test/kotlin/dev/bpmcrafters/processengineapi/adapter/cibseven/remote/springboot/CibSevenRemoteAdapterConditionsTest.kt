@@ -1,12 +1,14 @@
 package dev.bpmcrafters.processengineapi.adapter.cibseven.remote.springboot
 
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.NoOpServiceTaskCompletionApiImpl
-import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.NoOpUserTaskCompletionApiImpl
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.completion.UserTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.pull.PullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.delivery.subscribe.SubscribingServiceTaskDelivery
+import dev.bpmcrafters.processengineapi.adapter.cibseven.remote.task.modification.UserTaskModificationApiImpl
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -82,7 +84,55 @@ class CibSevenRemoteAdapterDisabledConditionsTest {
       context.getBean(PullUserTaskDelivery::class.java)
     }
     assertThat(context.getBean(ServiceTaskCompletionApi::class.java)).isInstanceOf(NoOpServiceTaskCompletionApiImpl::class.java)
-    assertThat(context.getBean(UserTaskCompletionApi::class.java)).isInstanceOf(NoOpUserTaskCompletionApiImpl::class.java)
+    assertThat(context.getBean(UserTaskCompletionApi::class.java)).isInstanceOf(UserTaskCompletionApiImpl::class.java)
+    assertThat(context.getBean(UserTaskModificationApi::class.java)).isInstanceOf(UserTaskModificationApiImpl::class.java)
+  }
+
+}
+
+@SpringBootTest(
+  properties = [
+    "dev.bpm-crafters.process-api.adapter.cib-seven-remote.service-tasks.delivery-strategy = custom",
+    "dev.bpm-crafters.process-api.adapter.cib-seven-remote.user-tasks.delivery-strategy = disabled"
+  ]
+)
+@ActiveProfiles("itest")
+class CibSevenRemoteCustomServiceTaskConditionsTest {
+
+  @Autowired
+  lateinit var context: ApplicationContext
+
+  @Test
+  fun `does not provide service completion API for custom delivery`() {
+    assertThrows<NoSuchBeanDefinitionException> {
+      context.getBean(PullServiceTaskDelivery::class.java)
+    }
+    assertThrows<NoSuchBeanDefinitionException> {
+      context.getBean(ServiceTaskCompletionApi::class.java)
+    }
+  }
+
+}
+
+@SpringBootTest(
+  properties = [
+    "dev.bpm-crafters.process-api.adapter.cib-seven-remote.service-tasks.delivery-strategy = disabled",
+    "dev.bpm-crafters.process-api.adapter.cib-seven-remote.user-tasks.delivery-strategy = custom"
+  ]
+)
+@ActiveProfiles("itest")
+class CibSevenRemoteCustomUserTaskCommandApiTest {
+
+  @Autowired
+  lateinit var context: ApplicationContext
+
+  @Test
+  fun `provides user task command APIs without adapter-managed delivery`() {
+    assertThrows<NoSuchBeanDefinitionException> {
+      context.getBean(PullUserTaskDelivery::class.java)
+    }
+    assertThat(context.getBean(UserTaskCompletionApi::class.java)).isInstanceOf(UserTaskCompletionApiImpl::class.java)
+    assertThat(context.getBean(UserTaskModificationApi::class.java)).isInstanceOf(UserTaskModificationApiImpl::class.java)
   }
 
 }

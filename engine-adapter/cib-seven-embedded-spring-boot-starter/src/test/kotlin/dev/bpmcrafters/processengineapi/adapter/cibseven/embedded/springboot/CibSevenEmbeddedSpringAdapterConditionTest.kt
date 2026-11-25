@@ -3,6 +3,8 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.springboot
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullServiceTaskDelivery
 import dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery.pull.EmbeddedPullUserTaskDelivery
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
+import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -55,6 +57,36 @@ class CibSevenEmbeddedAdapterDisabledConditionsTest {
     assertThrows<NoSuchBeanDefinitionException> {
       context.getBean(EmbeddedPullUserTaskDelivery::class.java)
     }
+    assertThat(context.getBean(ServiceTaskCompletionApi::class.java)).isNotNull()
+    assertThat(context.getBean(UserTaskCompletionApi::class.java)).isNotNull()
+    assertThat(context.getBean(UserTaskModificationApi::class.java)).isNotNull()
+  }
+
+}
+
+@SpringBootTest(
+  properties = [
+    "dev.bpm-crafters.process-api.adapter.cib-seven-embedded.service-tasks.delivery-strategy = custom",
+    "dev.bpm-crafters.process-api.adapter.cib-seven-embedded.user-tasks.delivery-strategy = custom"
+  ]
+)
+@ActiveProfiles("itest")
+class CibSevenEmbeddedAdapterCustomStrategyConditionsTest {
+
+  @Autowired
+  lateinit var context: ApplicationContext
+
+  @Test
+  fun `provides command APIs without adapter-managed delivery`() {
+    assertThrows<NoSuchBeanDefinitionException> {
+      context.getBean(EmbeddedPullServiceTaskDelivery::class.java)
+    }
+    assertThrows<NoSuchBeanDefinitionException> {
+      context.getBean(EmbeddedPullUserTaskDelivery::class.java)
+    }
+    assertThat(context.getBean(ServiceTaskCompletionApi::class.java)).isNotNull()
+    assertThat(context.getBean(UserTaskCompletionApi::class.java)).isNotNull()
+    assertThat(context.getBean(UserTaskModificationApi::class.java)).isNotNull()
   }
 
 }
