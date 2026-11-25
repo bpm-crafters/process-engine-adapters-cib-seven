@@ -5,6 +5,7 @@ import dev.bpmcrafters.processengineapi.task.ChangeDatesModifyTaskCmd
 import dev.bpmcrafters.processengineapi.task.ChangePayloadModifyTaskCmd
 import dev.bpmcrafters.processengineapi.task.TaskModification
 import dev.bpmcrafters.processengineapi.task.UserTaskModificationApi
+import org.assertj.core.api.Assertions.assertThat
 import org.cibseven.bpm.engine.TaskService
 import org.cibseven.bpm.engine.impl.persistence.entity.IdentityLinkEntity
 import org.cibseven.bpm.engine.task.Task
@@ -32,13 +33,14 @@ internal class CibSevenUserTaskModificationApiImplTest {
 
   @Test
   fun `react on wrong assign command`() {
-    assertThrows<UnsupportedOperationException> {
+    val exception = assertThrows<UnsupportedOperationException> {
       api.update(
         object: ChangeAssignmentModifyTaskCmd(taskId) {
 
         }
       ).get()
     }
+    assertThat(exception).hasMessageStartingWith("Unsupported command ${CibSevenUserTaskModificationApiImplTest::class.java.name}$")
   }
 
   @Test
