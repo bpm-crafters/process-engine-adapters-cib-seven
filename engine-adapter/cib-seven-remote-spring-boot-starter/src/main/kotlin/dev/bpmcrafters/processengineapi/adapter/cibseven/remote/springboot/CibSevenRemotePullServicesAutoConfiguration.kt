@@ -180,9 +180,6 @@ class CibSevenRemotePullServicesAutoConfiguration {
    */
   @Bean("cib-seven-remote-user-task-completion-api")
   @Qualifier("cib-seven-remote-user-task-completion-api")
-  @ConditionalOnUserTaskDeliveryStrategy(
-    strategy = CibSevenRemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
-  )
   fun userTaskCompletionApi(
     taskApi: TaskApi,
     subscriptionRepository: SubscriptionRepository,
@@ -206,9 +203,6 @@ class CibSevenRemotePullServicesAutoConfiguration {
    */
   @Bean("cib-seven-remote-user-task-modification-api")
   @Qualifier("cib-seven-remote-user-task-modification-api")
-  @ConditionalOnUserTaskDeliveryStrategy(
-    strategy = CibSevenRemoteAdapterProperties.UserTaskDeliveryStrategy.REMOTE_SCHEDULED
-  )
   fun userTaskModificationApi(
     taskApi: TaskApi,
     taskIdentityLinkApi: TaskIdentityLinkApi,
