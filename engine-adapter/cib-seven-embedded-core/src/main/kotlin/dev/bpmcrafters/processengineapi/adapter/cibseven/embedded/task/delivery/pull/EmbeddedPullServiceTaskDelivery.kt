@@ -107,12 +107,17 @@ class EmbeddedPullServiceTaskDelivery(
         activeSubscription.action.accept(taskInformation, variables)
       }
       logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
       logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-      externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries, retryTimeoutInSeconds * 1000)
-      cleanupFailedDelivery(lockedTask.id)
-      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+      try {
+        externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries, retryTimeoutInSeconds * 1000)
+        logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+      } catch (reportError: Exception) {
+        logger.error(reportError) { "PROCESS-ENGINE-CIB7-EMBEDDED-048: failed reporting the failure of task ${lockedTask.id}, it is delivered again once its lock expires." }
+      } finally {
+        cleanupFailedDelivery(lockedTask.id)
+      }
     }
   }
 
