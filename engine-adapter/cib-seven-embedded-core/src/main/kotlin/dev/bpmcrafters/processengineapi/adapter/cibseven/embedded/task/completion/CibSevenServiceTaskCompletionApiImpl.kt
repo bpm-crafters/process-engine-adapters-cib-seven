@@ -6,7 +6,6 @@ import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.task.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.cibseven.bpm.engine.ExternalTaskService
-import java.time.temporal.ChronoUnit
 import java.util.concurrent.CompletableFuture
 
 private val logger = KotlinLogging.logger {}
@@ -65,7 +64,7 @@ class CibSevenServiceTaskCompletionApiImpl(
       cmd.reason,
       cmd.errorDetails,
       cmd.retryCount ?: retries,
-      cmd.retryBackoff?.get(ChronoUnit.SECONDS) ?: retryTimeoutInSeconds
+      cmd.retryBackoff?.toMillis() ?: (retryTimeoutInSeconds * 1000)
     )
     subscriptionRepository.deactivateSubscriptionForTask(cmd.taskId)?.apply {
       withThreadContextClassLoader(termination) {
