@@ -49,6 +49,8 @@ class CibSevenRemoteProcessTestInitializer : ProcessTestInitializer {
 
   private fun startContainer(image: String): GenericContainer<*> =
     GenericContainer(image)
+      // REST only: the invoice example shifts the engine clock into the past while it generates demo data
+      .withCommand("./cibseven.sh", "--rest")
       .withExposedPorts(ENGINE_PORT)
       .waitingFor(Wait.forHttp("/engine-rest/engine/").forPort(ENGINE_PORT))
       .apply { start() }

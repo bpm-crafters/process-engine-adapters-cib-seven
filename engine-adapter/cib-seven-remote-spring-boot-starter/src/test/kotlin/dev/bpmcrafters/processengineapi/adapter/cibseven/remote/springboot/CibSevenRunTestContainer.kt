@@ -9,6 +9,8 @@ import org.testcontainers.containers.wait.strategy.Wait
 class CibSevenRunTestContainer(tag: String) : GenericContainer<CibSevenRunTestContainer>("cibseven/cibseven:$tag") {
 
   init {
+    // REST only: the invoice example shifts the engine clock into the past while it generates demo data
+    withCommand("./cibseven.sh", "--rest")
     withExposedPorts(8080)
     waitingFor(
       Wait

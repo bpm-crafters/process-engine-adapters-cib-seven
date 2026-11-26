@@ -107,12 +107,29 @@ class EmbeddedPullServiceTaskDelivery(
         activeSubscription.action.accept(taskInformation, variables)
       }
       logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-032: successfully delivered service task ${lockedTask.id}." }
-    } catch (e: Exception) {
-      val jobRetries: Int = lockedTask.retries ?: retries
-      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}" }
-      externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries - 1, retryTimeoutInSeconds * 1000)
-      subscriptionRepository.deactivateSubscriptionForTask(taskId = lockedTask.id)
-      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+    } catch (e: Throwable) {
+      val jobRetries: Int = lockedTask.retries?.minus(1) ?: retries
+      val failureMessage = "PROCESS-ENGINE-CIB7-EMBEDDED-033: failing delivering task ${lockedTask.id}: ${e.message}"
+      if (jobRetries > 0) logger.warn(e) { failureMessage } else logger.error(e) { failureMessage }
+      try {
+        externalTaskService.handleFailure(lockedTask.id, workerId, e.message, jobRetries, retryTimeoutInSeconds * 1000)
+        logger.debug { "PROCESS-ENGINE-CIB7-EMBEDDED-034: successfully failed delivering task ${lockedTask.id}: ${e.message}" }
+      } catch (reportError: Exception) {
+        logger.error(reportError) { "PROCESS-ENGINE-CIB7-EMBEDDED-048: failed reporting the failure of task ${lockedTask.id}, it is delivered again once its lock expires." }
+      } finally {
+        cleanupFailedDelivery(lockedTask.id)
+      }
+    }
+  }
+
+  private fun cleanupFailedDelivery(taskId: String) {
+    val subscription = subscriptionRepository.deactivateSubscriptionForTask(taskId) ?: return
+    try {
+      withThreadContextClassLoader(subscription.termination) {
+        subscription.termination.accept(TaskInformation(taskId, emptyMap()).withReason(TaskInformation.DELETE))
+      }
+    } catch (terminationError: Exception) {
+      logger.error { "PROCESS-ENGINE-CIB7-EMBEDDED-047: failed cleaning up delivery state for task $taskId: ${terminationError.message}" }
     }
   }
 
