@@ -2,6 +2,7 @@ package dev.bpmcrafters.processengineapi.adapter.cibseven.embedded.task.delivery
 
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.TaskSubscriptionHandle
+import dev.bpmcrafters.processengineapi.task.TaskInformation
 import dev.bpmcrafters.processengineapi.task.TaskType
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
@@ -21,6 +22,7 @@ import org.mockito.Mockito.RETURNS_SELF
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
@@ -39,6 +41,8 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
   private val workerId = "worker"
   private val slowTopic = "slow-topic"
   private val fastTopic = "fast-topic"
+  private val failingTopic = "failing-topic"
+  private val configuredRetries = 3
 
   private val externalTaskService = mock<ExternalTaskService>()
   private val fetchAndLockBuilder = mock<ExternalTaskQueryBuilder>()
@@ -53,7 +57,7 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
     maxTasks = 10,
     lockDurationInSeconds = 60,
     retryTimeoutInSeconds = 10,
-    retries = 1,
+    retries = configuredRetries,
     executorService = executor,
   )
 
@@ -61,6 +65,7 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
   private val startedTaskIds = CopyOnWriteArrayList<String>()
   private val finishedTaskIds = CopyOnWriteArrayList<String>()
   private val terminatedTaskIds = CopyOnWriteArrayList<String>()
+  private val terminationReasons = CopyOnWriteArrayList<Any?>()
 
   @BeforeEach
   fun setUp() {
@@ -72,6 +77,10 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
     subscribe(fastTopic) { taskId ->
       startedTaskIds.add(taskId)
       finishedTaskIds.add(taskId)
+    }
+    subscribe(failingTopic) { taskId ->
+      startedTaskIds.add(taskId)
+      throw IllegalStateException("handler failed")
     }
 
     whenever(externalTaskService.fetchAndLock(any(), any())).thenReturn(fetchAndLockBuilder)
@@ -177,6 +186,43 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
     await untilAsserted { assertThat(terminatedTaskIds).containsExactly("fast") }
   }
 
+  @Test
+  fun `failed delivery fails the task and terminates it with reason delete`() {
+    doReturn(listOf(lockedTask("failing", failingTopic)))
+      .whenever(fetchAndLockBuilder).execute()
+
+    taskDelivery.refresh()
+
+    await untilAsserted { assertThat(terminatedTaskIds).containsExactly("failing") }
+    assertThat(terminationReasons).containsExactly(TaskInformation.DELETE)
+    assertThat(subscriptionRepository.getActiveSubscriptionForTask("failing")).isNull()
+    verify(externalTaskService).handleFailure(eq("failing"), eq(workerId), eq("handler failed"), any(), any())
+  }
+
+  @Test
+  fun `first failed delivery hands the configured retries to the engine`() {
+    doReturn(listOf(lockedTask("failing", failingTopic, retries = null)))
+      .whenever(fetchAndLockBuilder).execute()
+
+    taskDelivery.refresh()
+
+    await untilAsserted {
+      verify(externalTaskService).handleFailure(eq("failing"), eq(workerId), any(), eq(configuredRetries), any())
+    }
+  }
+
+  @Test
+  fun `repeated failed delivery decrements the retries of the task`() {
+    doReturn(listOf(lockedTask("failing", failingTopic, retries = 3)))
+      .whenever(fetchAndLockBuilder).execute()
+
+    taskDelivery.refresh()
+
+    await untilAsserted {
+      verify(externalTaskService).handleFailure(eq("failing"), eq(workerId), any(), eq(2), any())
+    }
+  }
+
   private fun subscribe(topic: String, action: (String) -> Unit) {
     subscriptionRepository.createTaskSubscription(
       TaskSubscriptionHandle(
@@ -185,14 +231,18 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
         restrictions = mapOf(),
         taskDescriptionKey = topic,
         action = { taskInformation, _ -> action(taskInformation.taskId) },
-        termination = { taskInformation -> terminatedTaskIds.add(taskInformation.taskId) }
+        termination = { taskInformation ->
+          terminationReasons.add(taskInformation.meta[TaskInformation.REASON])
+          terminatedTaskIds.add(taskInformation.taskId)
+        }
       )
     )
   }
 
-  private fun lockedTask(id: String, topic: String): LockedExternalTask = mock {
+  private fun lockedTask(id: String, topic: String, retries: Int? = null): LockedExternalTask = mock {
     on { this.id } doReturn id
     on { topicName } doReturn topic
+    on { this.retries } doReturn retries
     on { variables } doReturn Variables.createVariables()
   }
 }
