@@ -20,8 +20,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.mockito.Mockito.RETURNS_SELF
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
@@ -42,6 +44,7 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
   private val slowTopic = "slow-topic"
   private val fastTopic = "fast-topic"
   private val failingTopic = "failing-topic"
+  private val erroringTopic = "erroring-topic"
   private val configuredRetries = 3
 
   private val externalTaskService = mock<ExternalTaskService>()
@@ -221,6 +224,36 @@ internal class EmbeddedPullServiceTaskDeliveryThreadingTest {
     await untilAsserted {
       verify(externalTaskService).handleFailure(eq("failing"), eq(workerId), any(), eq(2), any())
     }
+  }
+
+  @Test
+  fun `task is delivered again after its failure could not be reported`() {
+    doThrow(IllegalStateException("database unavailable"))
+      .whenever(externalTaskService).handleFailure(any(), any(), anyOrNull(), any(), any())
+    doReturn(listOf(lockedTask("failing", failingTopic))).whenever(fetchAndLockBuilder).execute()
+    val failingTaskInEngine = mock<ExternalTask> { on { id } doReturn "failing" }
+    doReturn(listOf(failingTaskInEngine)).whenever(existingTasksQuery).list()
+
+    taskDelivery.refresh()
+    await untilAsserted { assertThat(terminatedTaskIds).containsExactly("failing") }
+    taskDelivery.refresh()
+
+    await untilAsserted {
+      assertThat(startedTaskIds).containsExactly("failing", "failing")
+      assertThat(terminatedTaskIds).containsExactly("failing", "failing")
+    }
+    assertThat(terminationReasons).containsOnly(TaskInformation.DELETE)
+  }
+
+  @Test
+  fun `error thrown by the handler is reported as failure`() {
+    subscribe(erroringTopic) { throw NoClassDefFoundError("missing class") }
+    doReturn(listOf(lockedTask("erroring", erroringTopic, retries = 2))).whenever(fetchAndLockBuilder).execute()
+
+    taskDelivery.refresh()
+
+    await untilAsserted { assertThat(terminatedTaskIds).containsExactly("erroring") }
+    verify(externalTaskService).handleFailure("erroring", workerId, "missing class", 1, 10_000)
   }
 
   private fun subscribe(topic: String, action: (String) -> Unit) {
